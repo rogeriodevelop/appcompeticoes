@@ -93,7 +93,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
   <nav>
    <button class="menu-btn" aria-label="Abrir menu" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
    <ul id="menu" onclick="this.classList.remove('open')">
-    <li><a href="#ao-vivo">Competições</a></li><li><a href="#recursos">Recursos</a></li><li><a href="#como">Como funciona</a></li>
+    <li><a href="#ao-vivo">Competições</a></li><li><a href="#recursos">Recursos</a></li><li><a href="regulamentos.html">Regulamentos</a></li><li><a href="#como">Como funciona</a></li>
     <li><a href="#galeria">O sistema</a></li><li><a href="#gestao">Gestão</a></li><li><a href="#contato">Contato</a></li>
    </ul>
   </nav>
@@ -162,7 +162,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section id="como">
+<section id="regulamentos">
+ <div class="wrap">
+  <div class="eyebrow">Regulamentos</div>
+  <h2>Regras de <span id="qtdRegras">50</span> modalidades em um só lugar</h2>
+  <p class="sub">Consulte rapidamente jogadores, duração, pontuação, regras principais e penalidades de cada esporte. Cada gestor ainda publica o regulamento da própria competição.</p>
+  <div class="grid g4" id="vitrineRegras"></div>
+  <div class="actions" style="margin-top:26px"><a class="btn btn-p" href="regulamentos.html">Ver todos os regulamentos</a></div>
+ </div>
+</section>
+
+<section class="alt" id="como">
  <div class="wrap">
   <div class="eyebrow">Como funciona</div>
   <h2>Do zero ao campeão em três passos</h2>
@@ -175,7 +185,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section class="alt" id="publico">
+<section id="publico">
  <div class="wrap">
   <h2>Feito para todos os lados da quadra</h2>
   <div class="group">Torcida e equipes</div>
@@ -194,7 +204,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section id="galeria">
+<section class="alt" id="galeria">
  <div class="wrap">
   <div class="eyebrow">O sistema</div>
   <h2>Veja a plataforma em ação</h2>
@@ -212,7 +222,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section class="alt" id="gestao">
+<section id="gestao">
  <div class="wrap">
   <div class="eyebrow">Da arquibancada à mesa de controle</div>
   <h2>Sistema de gestão</h2>
@@ -226,7 +236,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section id="roadmap">
+<section class="alt" id="roadmap">
  <div class="wrap">
   <h2>O que vem por aí</h2>
   <p class="sub">O que já entregamos e o que estamos construindo para a torcida e os gestores.</p>
@@ -245,7 +255,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </div>
 </section>
 
-<section class="alt" id="contato">
+<section id="contato">
  <div class="wrap">
   <div class="cta-box">
    <h2>Leve sua competição para o próximo nível</h2>
@@ -260,7 +270,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
   <div class="fgrid">
    <div><div class="logo"><i>🏆</i><span>ARENA COMPETIÇÕES<small>Gestão Esportiva</small></span></div><p style="margin-top:12px">A plataforma de transparência e gestão para o esporte. Resultados, classificações e estatísticas em tempo real.</p></div>
    <div><h4>Plataforma</h4><ul><li><a href="#sobre">Sobre</a></li><li><a href="#recursos">Recursos</a></li><li><a href="#galeria">O sistema</a></li><li><a href="app.html">Painel</a></li></ul></div>
-   <div><h4>Recursos</h4><ul><li><a href="#como">Como funciona</a></li><li><a href="#roadmap">Novidades</a></li><li><a href="#publico">Para quem é</a></li><li><a href="#ao-vivo">Competições</a></li></ul></div>
+   <div><h4>Recursos</h4><ul><li><a href="regulamentos.html">Regulamentos</a></li><li><a href="#como">Como funciona</a></li><li><a href="#roadmap">Novidades</a></li><li><a href="#publico">Para quem é</a></li><li><a href="#ao-vivo">Competições</a></li></ul></div>
    <div><h4>Legal e contato</h4><ul><li><a href="privacidade.html">Política de Privacidade</a></li><li><a href="#contato" data-contato>Solicitar exclusão de dados</a></li><li><a href="#contato" data-contato>Fale conosco</a></li></ul></div>
   </div>
   <div class="copy">© <span id="ano">2026</span> Arena Competições. Todos os direitos reservados.</div>
@@ -286,8 +296,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  </form>
 </dialog>
 
+<script src="regras.js"></script>
 <script>
-var SUPA = "https://ehkatujpkryswbslnjcx.supabase.co";
+var SUPA ="https://ehkatujpkryswbslnjcx.supabase.co";
 var CHAVE = "sb_publishable_6BRG9Jj5IyoRcIMCDxdbLw_FA9hA46R"; // chave publicável (pode ficar no navegador)
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 function icone(m) {
@@ -296,6 +307,13 @@ function icone(m) {
   if (/handeb/.test(m)) return "🤾"; if (/fut|soci|suíç|suic/.test(m)) return "⚽"; return "🏅";
 }
 document.getElementById("ano").textContent = new Date().getFullYear();
+
+/* vitrine de regulamentos (catálogo local) */
+document.getElementById("qtdRegras").textContent = REGRAS.length;
+document.getElementById("vitrineRegras").innerHTML = ["futebol", "futsal", "volei", "basquete", "handebol", "tenis", "judo", "natacao"].map(function (id) {
+  var r = REGRAS.filter(function (x) { return x.id === id; })[0];
+  return r ? '<a class="card live" href="regulamentos.html#' + r.id + '"><div class="ico">' + r.ico + "</div><h3>" + esc(r.nome) + "</h3><p>" + esc(r.cat) + "</p></a>" : "";
+}).join("");
 
 /* competições reais do banco */
 fetch(SUPA + "/rest/v1/competicoes?select=id,nome,local,esportes(id,modalidade,sexo,ordem)&order=ordem", { headers: { apikey: CHAVE } })

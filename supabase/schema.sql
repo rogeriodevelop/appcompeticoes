@@ -90,6 +90,9 @@ create table if not exists public.eventos (
   ordem      int  not null default 0
 );
 
+-- Regulamento da competição (texto livre do organizador). Seguro rodar de novo.
+alter table public.competicoes add column if not exists regulamento text check (regulamento is null or char_length(regulamento) <= 20000);
+
 -- Colunas do chaveamento personalizado (fase preliminar, rótulos, 3º lugar). Seguro rodar de novo.
 alter table public.jogos add column if not exists nome     text;
 alter table public.jogos add column if not exists rot_casa text;

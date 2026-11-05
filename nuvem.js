@@ -17,7 +17,7 @@ function nn(v) { return v == null || v === '' ? null : v; }
 function paraLinhas(comps) {
   var R = vazio();
   comps.forEach(function (C, ci) {
-    R.competicoes.push({ id: C.id, nome: C.nome, local: nn(C.local), ordem: ci });
+    R.competicoes.push({ id: C.id, nome: C.nome, local: nn(C.local), regulamento: nn(C.regulamento), ordem: ci });
     C.esportes.forEach(function (E, ei) {
       R.esportes.push({ id: E.id, competicao_id: C.id, modalidade: E.modalidade, categoria: nn(E.categoria), sexo: E.sexo || 'Misto',
         formato: E.formato, turnos: E.turnos || 1, num_grupos: E.numGrupos || 2, classificados: E.classificados || 2,
@@ -57,7 +57,7 @@ function porOrdem(a, b) { return (a.ordem - b.ordem) || (a.id < b.id ? -1 : 1); 
 function deLinhas(T) {
   var gruposPorEsp = {};
   var comps = T.competicoes.slice().sort(porOrdem).map(function (c) {
-    return { id: c.id, owner: c.owner, nome: c.nome, local: c.local || '', esportes: [] };
+    return { id: c.id, owner: c.owner, nome: c.nome, local: c.local || '', regulamento: c.regulamento || '', esportes: [] };
   });
   var porId = {}; comps.forEach(function (c) { porId[c.id] = c; });
   var esps = {};
@@ -121,6 +121,12 @@ function marcar(R) {
   });
 }
 
+var semRegulamento = false, aviso = '';
+function semColuna(tabela, linhas) {
+  if (tabela !== 'competicoes' || !semRegulamento) return linhas;
+  return linhas.map(function (r) { var c = Object.assign({}, r); delete c.regulamento; return c; });
+}
+
 async function sincronizar(comps) {
   var R = paraLinhas(comps), t, i;
   for (var k = 0; k < ORDEM.length; k++) {
@@ -128,7 +134,15 @@ async function sincronizar(comps) {
     var mudou = R[t].filter(function (r) { return sincronizado[t][r.id] !== JSON.stringify(r); });
     for (i = 0; i < mudou.length; i += 500) {
       var lote = mudou.slice(i, i + 500);
-      var r1 = await cli.from(t).upsert(lote);
+      var r1 = await cli.from(t).upsert(semColuna(t, lote));
+      if (r1.error && t === 'competicoes' && /regulamento/i.test(r1.error.message || '')) {
+        // banco ainda sem a coluna nova: segue salvando o resto e avisa
+        semRegulamento = true;
+        r1 = await cli.from(t).upsert(semColuna(t, lote));
+      }
+      if (t === 'competicoes' && semRegulamento && lote.some(function (r) { return r.regulamento; })) {
+        aviso = 'O regulamento não foi salvo: rode o supabase/schema.sql atualizado no Supabase.';
+      }
       if (r1.error) throw r1.error;
       lote.forEach(function (r) { sincronizado[t][r.id] = JSON.stringify(r); });
     }
@@ -150,7 +164,7 @@ async function rodar() {
   rodando = true;
   try {
     do { sujo = false; aoStatus('salvando'); await sincronizar(pendente); } while (sujo);
-    aoStatus('ok');
+    if (aviso) { var a = aviso; aviso = ''; aoStatus('erro', a); } else aoStatus('ok');
   } catch (e) {
     aoStatus('erro', (e && e.message) || String(e));
   } finally { rodando = false; }

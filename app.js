@@ -3,7 +3,7 @@
 
 /* ---------- Dados ---------- */
 var KEY = 'arena.v1';
-var MODS = ['Futsal', 'Futebol', 'Futebol society', 'Futebol Suíço', 'Vôlei', 'Vôlei de Praia', 'Futevôlei', 'Beach Tênis', 'Basquete', 'Handebol', 'Outra'];
+var MODS = (window.REGRAS ? REGRAS.map(function (r) { return r.nome; }).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); }) : ['Futsal', 'Vôlei', 'Basquete']).concat('Outra');
 var FORMATOS = { pontos: 'Pontos corridos', mata: 'Mata-mata', grupos: 'Grupos + mata-mata' };
 var db = load();
 
@@ -355,12 +355,13 @@ function telaCompeticao(C) {
     '<button class="btn btn-o" data-act="editComp">Editar</button><button class="btn btn-d" data-act="delComp">Excluir</button></span>' + acoesPagina() + '</div></div>' +
     '<div class="stats">' + statBox(C.esportes.length, 'Esportes') + statBox(nQ, 'Equipes') + statBox(nA, 'Atletas') + statBox(nF + '/' + nJ, 'Jogos encerrados') + '</div>' +
     '<h2>Esportes</h2>' + (cards ? '<div class="grid">' + cards + '</div>'
-      : '<div class="empty"><b>Nenhum esporte cadastrado</b>Use “Novo esporte” para incluir futsal, vôlei, basquete etc.</div>');
+      : '<div class="empty"><b>Nenhum esporte cadastrado</b>Use “Novo esporte” para incluir futsal, vôlei, basquete etc.</div>') +
+    '<h2>Regulamento</h2>' + blocoRegulamento(C);
 }
 
 function telaComp(c, aba) {
   var abas = [['classificacao', c.formato === 'mata' ? 'Chaveamento' : 'Classificação', ''], ['jogos', 'Jogos', c.jogos.filter(function (j) { return !j.bye; }).length],
-    ['equipes', 'Equipes', c.equipes.length], ['atletas', 'Atletas', c.atletas.length], ['estatisticas', 'Estatísticas', ''], ['config', 'Configuração', '']];
+    ['equipes', 'Equipes', c.equipes.length], ['atletas', 'Atletas', c.atletas.length], ['estatisticas', 'Estatísticas', ''], ['regras', 'Regulamento', ''], ['config', 'Configuração', '']];
   var tabs = abas.map(function (a) {
     return '<a href="#/c/' + CUR.comp.id + '/' + c.id + '/' + a[0] + '" class="' + (a[0] === aba ? 'on' : '') + '">' + a[1] + (a[2] !== '' ? '<small>' + a[2] + '</small>' : '') + '</a>';
   }).join('');
@@ -374,7 +375,7 @@ function telaComp(c, aba) {
   }
   var ch = campeao(c), k = contagem(c);
   var corpo = { classificacao: abaClass, jogos: abaJogos, equipes: abaEquipes, atletas: abaAtletas,
-    estatisticas: abaStats, config: abaConfig }[aba] || abaClass;
+    estatisticas: abaStats, regras: abaRegras, config: abaConfig }[aba] || abaClass;
   app.innerHTML = '<a class="crumb" href="#/c/' + CUR.comp.id + '">← ' + esc(CUR.comp.nome) + '</a>' +
     '<div class="phead"><div class="ptitle"><span class="ico">' + icone(c.modalidade) + '</span><div><h1>' + esc(c.modalidade) + '</h1>' +
     '<div class="chips" style="margin-top:4px"><span class="tag">' + esc((c.categoria ? c.categoria + ' · ' : '') + c.sexo) + '</span><span class="tag blue">' + FORMATOS[c.formato] + '</span>' +
@@ -525,7 +526,7 @@ function formComp(C) {
 function formEsporte(c) {
   c = c || { modalidade: 'Futsal', sexo: 'Misto', formato: 'pontos', turnos: 1, numGrupos: 2, classificados: 2 };
   var bloq = c.gerado ? ' disabled' : '';
-  var padrao = MODS.indexOf(c.modalidade) >= 0 ? c.modalidade : 'Outra';
+  var rg = window.regraDe && regraDe(c.modalidade), padrao = rg ? rg.nome : 'Outra';
   return '<div class="f2"><label>Esporte *<select name="modalidade">' + opts(MODS, padrao) + '</select></label>' +
     '<label>Se “Outra”, qual?<input name="outra" value="' + esc(padrao === 'Outra' && c.modalidade !== 'Outra' ? c.modalidade : '') + '"></label></div>' +
     '<div class="f2"><label>Categoria<input name="categoria" placeholder="Ex.: Sub-17, Adulto" value="' + esc(c.categoria) + '"></label>' +
@@ -544,6 +545,29 @@ function lerEsporte(fd, c) {
     c.classificados = Math.min(8, Math.max(1, parseInt(fd.classificados, 10) || 2));
   }
 }
+function blocoRegulamento(C) {
+  var t = (C.regulamento || '').trim();
+  return '<div class="card"><div class="row between"><h3>Regulamento da competição</h3>' +
+    '<button class="btn btn-o sm edit" data-act="editRegulamento">' + (t ? 'Editar' : 'Cadastrar') + '</button></div>' +
+    (t ? '<div class="reg">' + esc(t) + '</div>'
+      : '<p class="mut" style="margin-top:8px">Nenhum regulamento publicado. Inclua datas, critérios de desempate, premiação e regras específicas do evento.</p>') + '</div>';
+}
+function abaRegras(c) {
+  var r = window.regraDe && regraDe(c.modalidade), h = blocoRegulamento(CUR.comp);
+  if (!r) {
+    return h + '<h2>Regras do esporte</h2><div class="empty"><b>Sem resumo cadastrado para “' + esc(c.modalidade) + '”</b>' +
+      '<a class="btn btn-o sm" href="regulamentos.html">Ver todos os regulamentos</a></div>';
+  }
+  function lista(a) { return '<ul class="rl">' + a.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }
+  return h + '<h2>Regras de ' + esc(r.nome) + '</h2><div class="card">' +
+    '<div class="top-line"><span class="ico">' + r.ico + '</span><div><h3>' + esc(r.nome) + '</h3><p class="mut">' + esc(r.resumo) + '</p></div></div>' +
+    '<div class="kv"><div><b>Jogadores</b>' + esc(r.jog) + '</div><div><b>Duração</b>' + esc(r.dur) + '</div><div><b>Pontuação</b>' + esc(r.pont) + '</div></div>' +
+    '<h4 class="sec">Regras principais</h4>' + lista(r.regras) + '<h4 class="sec">Faltas e penalidades</h4>' + lista(r.pen) +
+    '<p class="mut" style="margin-top:14px;font-size:.8rem">Resumo informativo. Vale o regulamento oficial da competição e da federação.</p>' +
+    '<div class="row noprint" style="margin-top:12px"><a class="btn btn-o sm" href="regulamentos.html#' + r.id + '">Abrir na página de regulamentos</a>' +
+    (r.fonte ? '<a class="btn btn-o sm" href="' + esc(r.fonte) + '" target="_blank" rel="noopener noreferrer">Guia completo ↗</a>' : '') + '</div></div>';
+}
+
 function abaConfig(c) {
   return '<div class="card edit"><h3>Dados do esporte</h3><p class="mut">Formato, turnos e grupos só mudam antes de gerar os jogos.</p>' +
     '<div class="row" style="margin-top:10px"><button class="btn btn-p" data-act="editEsporte">Editar dados</button>' +
@@ -697,6 +721,12 @@ document.addEventListener('click', function (e) {
     a.download = 'arena-competicoes.json'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
   else if (!C) return;
+  else if (act === 'editRegulamento') {
+    modal('Regulamento da competição',
+      '<label>Texto do regulamento<textarea name="reg" rows="14" maxlength="20000" placeholder="Datas, formato de disputa, critérios de desempate, premiação, disciplina…">' + esc(C.regulamento) + '</textarea></label>' +
+      '<p class="mut">Até 20.000 caracteres. O texto fica visível ao público.</p>',
+      function (fd) { C.regulamento = (fd.reg || '').trim(); refresh(); });
+  }
   else if (act === 'editComp') {
     modal('Editar competição', formComp(C), function (fd) { C.nome = fd.nome.trim(); C.local = (fd.local || '').trim(); refresh(); });
   }

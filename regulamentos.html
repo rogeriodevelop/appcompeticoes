@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regulamentos esportivos – Arena Competições</title>
+<meta name="description" content="Resumo das regras das principais modalidades esportivas: futebol, futsal, vôlei, basquete, handebol, lutas, raquete e muito mais.">
+<meta name="theme-color" content="#0f2a5c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--soft:#f3f5fa;--ink:#0f1b33;--mut:#64748b;--line:#e2e8f0;--brand:#0f2a5c;--blue:#1d4ed8;--pri:#16a34a;--shadow:0 1px 2px rgba(15,27,51,.06),0 10px 30px rgba(15,27,51,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--soft);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+header{background:linear-gradient(135deg,#0b1f45,#0f2a5c 60%,#173a7a);color:#fff}
+.bar{display:flex;align-items:center;justify-content:space-between;height:64px;gap:14px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
+.logo i{font-style:normal;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:grid;place-items:center}
+.logo small{display:block;font-size:.62rem;font-weight:500;color:#9db4e0;letter-spacing:1.2px;text-transform:uppercase}
+.bar nav{display:flex;gap:6px}.bar nav a{padding:8px 12px;border-radius:8px;color:#c9d6f2;font-size:.9rem;font-weight:500}.bar nav a:hover{background:rgba(255,255,255,.1);color:#fff}
+.hero{padding:44px 0 34px;background:linear-gradient(135deg,#0b1f45,#143a82 70%,#1d4ed8);color:#fff}
+.hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.5px;line-height:1.15;margin-bottom:8px}
+.hero p{color:#c9d6f2;max-width:640px}
+.tools{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+input[type=search]{flex:1;min-width:240px;max-width:420px;border:0;border-radius:12px;padding:13px 16px;font:inherit;font-size:.95rem}
+input[type=search]:focus{outline:3px solid rgba(34,197,94,.5)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 6px}
+.chip{padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:#fff;font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;color:var(--mut)}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+main{padding:10px 0 60px}
+h2{font-size:1.05rem;margin:26px 0 12px;font-weight:800;color:var(--brand)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);cursor:pointer;text-align:left;font:inherit;color:inherit;transition:.18s;display:block;width:100%}
+.card:hover{transform:translateY(-3px);border-color:#b9c8e6;box-shadow:0 14px 34px rgba(15,27,51,.13)}
+.card .ico{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#e0ecff,#f0f6ff);display:grid;place-items:center;font-size:1.5rem;margin-bottom:10px}
+.card h3{font-size:1.02rem;margin-bottom:4px}.card p{font-size:.88rem;color:var(--mut)}
+.card .more{margin-top:10px;font-size:.82rem;font-weight:700;color:var(--blue)}
+.empty{background:#fff;border:2px dashed #cdd6e4;border-radius:16px;padding:40px 18px;text-align:center;color:var(--mut)}
+.aviso{background:#fff;border:1px solid #bfdbfe;border-left:4px solid var(--blue);border-radius:12px;padding:14px 16px;margin-top:30px;font-size:.88rem;color:#1e3a8a}
+dialog{margin:auto;background:#fff;color:var(--ink);border:0;border-radius:20px;padding:0;width:min(680px,94vw);max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(11,31,69,.35)}
+dialog::backdrop{background:rgba(11,31,69,.55);backdrop-filter:blur(3px)}
+.dh{display:flex;gap:14px;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#eef3ff,#fff);border-bottom:1px solid var(--line)}
+.dh .ico{width:56px;height:56px;border-radius:14px;background:#e0ecff;display:grid;place-items:center;font-size:1.9rem;flex:none}
+.dh h2{margin:0;color:var(--ink);font-size:1.4rem}.dh span{font-size:.8rem;color:var(--mut)}
+.db{padding:22px 26px 26px}
+.db p.res{color:var(--mut);margin-bottom:16px}
+.kv{display:grid;gap:10px;margin-bottom:16px}
+.kv div{background:var(--soft);border-radius:12px;padding:10px 14px;font-size:.9rem}
+.kv b{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin-bottom:2px}
+.db h4{font-size:.78rem;text-transform:uppercase;letter-spacing:1px;color:var(--pri);margin:16px 0 8px}
+.db ul{padding-left:20px;font-size:.92rem}.db li{margin-bottom:6px}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px;font-weight:700;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit;font-size:.88rem;font-weight:700}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.p{background:var(--pri);border-color:var(--pri);color:#fff}.btn.p:hover{background:#15803d;color:#fff}
+footer{border-top:1px solid var(--line);background:#fff;padding:20px 0;font-size:.84rem;color:var(--mut)}
+@media(max-width:700px){.bar nav a.nl{display:none}}
+@media print{header,.hero,.chips,footer,.acoes,.aviso{display:none!important}dialog{box-shadow:none;max-height:none;width:100%}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap bar">
+  <a class="logo" href="index.html"><i>🏆</i><span>ARENA COMPETIÇÕES<small>Gestão Esportiva</small></span></a>
+  <nav><a class="nl" href="index.html">Início</a><a class="nl" href="regulamentos.html">Regulamentos</a><a href="app.html">Painel</a></nav>
+ </div>
+</header>
+
+<section class="hero">
+ <div class="wrap">
+  <h1>Regulamentos esportivos</h1>
+  <p>Resumo das regras das principais modalidades, para consulta rápida de atletas, árbitros e organizadores.</p>
+  <div class="tools"><input type="search" id="busca" placeholder="Buscar modalidade (ex.: futsal, judô, vôlei)…" aria-label="Buscar modalidade"></div>
+ </div>
+</section>
+
+<main class="wrap">
+ <div class="chips" id="chips"></div>
+ <div id="lista"></div>
+ <div class="aviso"><b>Importante:</b> estes são resumos informativos e simplificados. As regras mudam conforme a federação, a categoria e o ano. Na competição vale sempre o regulamento oficial do organizador e da respectiva confederação.</div>
+</main>
+
+<footer><div class="wrap">© <span id="ano"></span> Arena Competições · <a href="privacidade.html" style="text-decoration:underline">Política de Privacidade</a></div></footer>
+
+<dialog id="dlg"></dialog>
+<script src="regras.js"></script>
+<script>
+var cat = "Todas", q = "";
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+document.getElementById("ano").textContent = new Date().getFullYear();
+
+function chips() {
+  var cats = ["Todas"].concat(REGRAS_CATS);
+  document.getElementById("chips").innerHTML = cats.map(function (c) {
+    return '<button class="chip ' + (c === cat ? "on" : "") + '" data-cat="' + esc(c) + '">' + esc(c) + "</button>";
+  }).join("");
+}
+function lista() {
+  var termo = norm(q), html = "", total = 0;
+  REGRAS_CATS.forEach(function (c) {
+    if (cat !== "Todas" && cat !== c) return;
+    var itens = REGRAS.filter(function (r) {
+      return r.cat === c && (!termo || norm(r.nome + " " + r.al.join(" ") + " " + r.resumo).indexOf(termo) >= 0);
+    });
+    if (!itens.length) return;
+    total += itens.length;
+    html += "<h2>" + esc(c) + " (" + itens.length + ")</h2><div class=\"grid\">" + itens.map(function (r) {
+      return '<button class="card" data-id="' + r.id + '"><div class="ico">' + r.ico + "</div><h3>" + esc(r.nome) + "</h3><p>" + esc(r.resumo) + '</p><div class="more">Ver regras →</div></button>';
+    }).join("") + "</div>";
+  });
+  document.getElementById("lista").innerHTML = total ? html : '<div class="empty">Nenhuma modalidade encontrada para a busca.</div>';
+}
+function abrir(id) {
+  var r = REGRAS.filter(function (x) { return x.id === id; })[0];
+  if (!r) return;
+  var li = function (a) { return a.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join(""); };
+  document.getElementById("dlg").innerHTML =
+    '<div class="dh"><div class="ico">' + r.ico + '</div><div><h2>' + esc(r.nome) + "</h2><span>" + esc(r.cat) + "</span></div></div>" +
+    '<div class="db"><p class="res">' + esc(r.resumo) + "</p>" +
+    '<div class="kv"><div><b>Jogadores</b>' + esc(r.jog) + "</div><div><b>Duração</b>" + esc(r.dur) + "</div><div><b>Pontuação</b>" + esc(r.pont) + "</div></div>" +
+    "<h4>Regras principais</h4><ul>" + li(r.regras) + "</ul>" +
+    "<h4>Faltas e penalidades</h4><ul>" + li(r.pen) + "</ul>" +
+    '<div class="acoes"><button class="btn" onclick="window.print()">🖨️ Imprimir</button>' +
+    '<button class="btn" onclick="copiar(\'' + r.id + '\')">🔗 Copiar link</button>' +
+    (r.fonte ? '<a class="btn" href="' + esc(r.fonte) + '" target="_blank" rel="noopener noreferrer">Guia completo ↗</a>' : "") +
+    '<button class="btn p" onclick="document.getElementById(\'dlg\').close()">Fechar</button></div></div>';
+  var d = document.getElementById("dlg"); if (!d.open) d.showModal();
+  history.replaceState(null, "", "#" + id);
+}
+function copiar(id) {
+  var u = location.origin + location.pathname + "#" + id;
+  if (navigator.clipboard) navigator.clipboard.writeText(u); else prompt("Copie o link:", u);
+}
+document.addEventListener("click", function (e) {
+  var c = e.target.closest("[data-cat]"); if (c) { cat = c.dataset.cat; chips(); lista(); return; }
+  var k = e.target.closest(".card[data-id]"); if (k) abrir(k.dataset.id);
+});
+document.getElementById("busca").addEventListener("input", function (e) { q = e.target.value; lista(); });
+document.getElementById("dlg").addEventListener("close", function () { history.replaceState(null, "", location.pathname); });
+window.addEventListener("hashchange", function () {
+  var id = decodeURIComponent(location.hash.slice(1));
+  if (id) abrir(id); else if (document.getElementById("dlg").open) document.getElementById("dlg").close();
+});
+chips(); lista();
+if (location.hash.length > 1) abrir(decodeURIComponent(location.hash.slice(1)));
+</script>
+</body>
+</html>
