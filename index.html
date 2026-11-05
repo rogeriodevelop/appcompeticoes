@@ -17,17 +17,40 @@ body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;back
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
 header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;color:var(--brand)}
+header{transition:box-shadow .2s,background .2s}header.rolou{box-shadow:0 6px 24px rgba(15,27,51,.09)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px}
+.nav>nav{flex:1;display:flex;justify-content:center;min-width:0}
+.nav>.btn{padding:10px 20px;white-space:nowrap;flex:none}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;color:var(--brand);white-space:nowrap;line-height:1.15;flex:none}
 .logo i{font-style:normal;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:grid;place-items:center;font-size:1.2rem;box-shadow:0 4px 10px rgba(22,163,74,.35)}
 .logo small{display:block;font-size:.62rem;font-weight:500;color:var(--mut);letter-spacing:1.2px;text-transform:uppercase}
-nav ul{display:flex;gap:6px;list-style:none;font-size:.92rem;font-weight:500;color:var(--mut)}
-nav a{padding:8px 12px;border-radius:8px}nav a:hover{background:var(--soft);color:var(--ink)}
+nav ul{display:flex;gap:2px;list-style:none;font-size:.9rem;font-weight:600;color:var(--mut)}
+nav a{position:relative;display:block;padding:9px 12px;border-radius:10px;white-space:nowrap;transition:color .15s,background .15s}
+nav a:hover{background:var(--soft);color:var(--ink)}
+nav a::after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:var(--pri);transform:scaleX(0);transition:transform .2s}
+nav a.on{color:var(--brand)}nav a.on::after{transform:scaleX(1)}
+nav li.so-mob{display:none}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:12px 22px;border-radius:12px;font-weight:700;border:1px solid transparent;cursor:pointer;font-size:.95rem;font-family:inherit;transition:.15s}
 .btn-p{background:var(--pri);color:#fff;box-shadow:0 6px 16px rgba(22,163,74,.3)}.btn-p:hover{background:var(--pri2);transform:translateY(-1px)}
 .btn-o{border-color:var(--line);background:#fff;color:var(--ink)}.btn-o:hover{border-color:var(--blue);color:var(--blue)}
 .btn-w{background:#fff;color:var(--brand)}.btn-w:hover{transform:translateY(-1px)}
-.menu-btn{display:none;background:none;border:0;font-size:1.6rem;color:var(--ink)}
+.menu-btn{display:none;background:var(--soft);border:1px solid var(--line);border-radius:10px;width:42px;height:42px;font-size:1.3rem;color:var(--ink);cursor:pointer}
+/* cartão de competição */
+.card.comp{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.comp .topo{position:relative;padding:22px 24px 18px;color:#fff;background:linear-gradient(135deg,#0b1f45,#143a82 65%,#1d4ed8)}
+.comp .topo::after{content:"🏆";position:absolute;right:16px;bottom:-14px;font-size:4.2rem;opacity:.16}
+.comp .live-tag{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,.16);border-radius:99px;padding:4px 10px;margin-bottom:12px}
+.comp .live-tag i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:pulso 1.8s infinite}
+@keyframes pulso{70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.comp h3{font-size:1.2rem;line-height:1.25;margin:0 0 4px;color:#fff}
+.comp .topo p{color:#c9d6f2;font-size:.88rem}
+.comp .corpo{padding:18px 24px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+.comp .esps{display:flex;flex-wrap:wrap;gap:8px}
+.comp .esp{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 11px}
+.comp .ver{margin-top:auto;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:.9rem;color:var(--blue);border-top:1px solid var(--line);padding-top:14px}
+.comp .ver b{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;transition:transform .18s}
+a.comp:hover .ver b{transform:translateX(4px)}
+@media(prefers-reduced-motion:reduce){.comp .live-tag i{animation:none}html{scroll-behavior:auto}}
 section{padding:80px 0}
 .alt{background:var(--soft)}
 .eyebrow{color:var(--pri);font-size:.78rem;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:10px}
@@ -78,10 +101,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
 .close{float:right;background:none;border:0;color:var(--mut);font-size:1.6rem;cursor:pointer}
 .msg{font-size:.9rem;border-radius:10px;padding:10px 12px}
 .msg.ok{background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0}.msg.err{background:#fef2f2;color:#7f1d1d;border:1px solid #fecaca}
+@media(max-width:1060px){
+ .nav>nav{flex:none;margin-left:auto}
+ .menu-btn{display:block}
+ nav ul{display:none;position:absolute;top:68px;left:0;right:0;background:#fff;flex-direction:column;gap:2px;padding:12px 20px 18px;border-bottom:1px solid var(--line);box-shadow:0 18px 30px rgba(15,27,51,.12)}
+ nav ul.open{display:flex}
+ nav a{padding:13px 12px;font-size:1rem}nav a::after{display:none}nav a.on{background:var(--soft)}
+ nav li.so-mob{display:block;margin-top:8px}nav li.so-mob a{background:var(--pri);color:#fff;text-align:center;font-weight:700}
+ .nav>.btn{display:none}
+}
 @media(max-width:900px){
  .hero-g,.two,.gal{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr 1fr}
- .menu-btn{display:block}nav ul{display:none;position:absolute;top:68px;left:0;right:0;background:#fff;flex-direction:column;padding:12px 20px;border-bottom:1px solid var(--line)}nav ul.open{display:flex}
- .nav>.btn{display:none}section{padding:56px 0}
+ section{padding:56px 0}
 }
 @media(max-width:560px){.g4,.g3,.g2,.fgrid{grid-template-columns:1fr}}
 </style>
@@ -91,10 +122,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
  <div class="wrap nav">
   <a class="logo" href="#topo"><i>🏆</i><span>ARENA COMPETIÇÕES<small>Gestão Esportiva</small></span></a>
   <nav>
-   <button class="menu-btn" aria-label="Abrir menu" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
-   <ul id="menu" onclick="this.classList.remove('open')">
+   <button class="menu-btn" id="menuBtn" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu">☰</button>
+   <ul id="menu">
     <li><a href="#ao-vivo">Competições</a></li><li><a href="#recursos">Recursos</a></li><li><a href="regulamentos.html">Regulamentos</a></li><li><a href="#como">Como funciona</a></li>
     <li><a href="#galeria">O sistema</a></li><li><a href="#gestao">Gestão</a></li><li><a href="#contato">Contato</a></li>
+    <li class="so-mob"><a href="app.html">Acessar painel</a></li>
    </ul>
   </nav>
   <a class="btn btn-p" href="app.html">Acessar painel</a>
@@ -308,6 +340,23 @@ function icone(m) {
 }
 document.getElementById("ano").textContent = new Date().getFullYear();
 
+/* menu: abre/fecha no celular, sombra ao rolar e destaque da seção atual */
+(function () {
+  var cab = document.querySelector("header"), menu = document.getElementById("menu"), bt = document.getElementById("menuBtn");
+  function abrir(v) { menu.classList.toggle("open", v); bt.setAttribute("aria-expanded", v); bt.textContent = v ? "✕" : "☰"; }
+  bt.addEventListener("click", function () { abrir(!menu.classList.contains("open")); });
+  menu.addEventListener("click", function (e) { if (e.target.closest("a")) abrir(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") abrir(false); });
+  var links = [].slice.call(menu.querySelectorAll('a[href^="#"]')), alvos = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+  function atualizar() {
+    cab.classList.toggle("rolou", window.scrollY > 8);
+    var y = window.scrollY + 120, atual = -1;
+    alvos.forEach(function (s, i) { if (s && s.offsetTop <= y) atual = i; });
+    links.forEach(function (a, i) { a.classList.toggle("on", i === atual); });
+  }
+  window.addEventListener("scroll", atualizar, { passive: true }); window.addEventListener("load", atualizar); atualizar();
+})();
+
 /* vitrine de regulamentos (catálogo local) */
 document.getElementById("qtdRegras").textContent = REGRAS.length;
 document.getElementById("vitrineRegras").innerHTML = ["futebol", "futsal", "volei", "basquete", "handebol", "tenis", "judo", "natacao"].map(function (id) {
@@ -323,9 +372,11 @@ fetch(SUPA + "/rest/v1/competicoes?select=id,nome,local,esportes(id,modalidade,s
     if (!lista.length) { box.innerHTML = '<div class="card"><h3>Em breve</h3><p>Nenhuma competição publicada ainda.</p></div>'; return; }
     box.innerHTML = lista.map(function (c) {
       var esp = (c.esportes || []).sort(function (a, b) { return a.ordem - b.ordem; });
-      var icos = esp.map(function (e) { return icone(e.modalidade); }).filter(function (m, i, a) { return a.indexOf(m) === i; }).join(" ");
-      return '<a class="card live" href="app.html#/c/' + encodeURIComponent(c.id) + '"><div class="ico">🏆</div><h3>' + esc(c.nome) + '</h3><p>' + esc(c.local || "Competição esportiva") + '</p>' +
-        '<p style="font-size:1.25rem;margin-top:8px">' + icos + '</p><div class="chips"><span class="tag">' + esp.length + " esportes</span><span class=\"tag\">Ver competição →</span></div></a>";
+      var nomes = esp.map(function (e) { return e.modalidade; }).filter(function (m, i, a) { return a.indexOf(m) === i; });
+      var chips = nomes.map(function (m) { return '<span class="esp">' + icone(m) + " " + esc(m) + "</span>"; }).join("");
+      return '<a class="card live comp" href="app.html#/c/' + encodeURIComponent(c.id) + '"><div class="topo"><span class="live-tag"><i></i>Em andamento</span><h3>' + esc(c.nome) + '</h3><p>' +
+        esc(c.local || "Competição esportiva") + '</p></div><div class="corpo"><div class="esps">' + chips + '</div><div class="ver"><span>' +
+        esp.length + (esp.length === 1 ? " disputa" : " disputas") + ' · ver jogos e tabelas</span><b>→</b></div></div></a>';
     }).join("");
   })
   .catch(function () {
