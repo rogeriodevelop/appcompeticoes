@@ -132,3 +132,31 @@ begin
     execute format('grant select, insert, update, delete on public.%I to authenticated', t);
   end loop;
 end $$;
+
+-- ---------- Contatos do site (formulário "Falar com a equipe") ----------
+-- Qualquer visitante pode ENVIAR; só o administrador (e-mail abaixo) consegue LER.
+create table if not exists public.contatos (
+  id          uuid primary key default gen_random_uuid(),
+  criado_em   timestamptz not null default now(),
+  nome        text not null check (char_length(nome) between 1 and 120),
+  email       text not null check (char_length(email) between 3 and 160),
+  whatsapp    text not null check (char_length(whatsapp) between 1 and 30),
+  tipo        text not null check (tipo in ('Particular', 'Público')),
+  cidade      text not null check (char_length(cidade) between 1 and 80),
+  uf          text not null check (char_length(uf) = 2),
+  modalidades text not null check (char_length(modalidades) between 1 and 160),
+  periodo     text not null check (char_length(periodo) between 1 and 80),
+  mensagem    text not null check (char_length(mensagem) between 1 and 1000)
+);
+
+alter table public.contatos enable row level security;
+
+drop policy if exists "visitante envia" on public.contatos;
+create policy "visitante envia" on public.contatos for insert to anon, authenticated with check (true);
+
+drop policy if exists "admin le" on public.contatos;
+create policy "admin le" on public.contatos for select to authenticated
+  using (lower((select auth.jwt() ->> 'email')) = 'rogeriosblack@gmail.com');
+
+grant insert on public.contatos to anon, authenticated;
+grant select on public.contatos to authenticated;

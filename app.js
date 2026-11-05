@@ -28,6 +28,12 @@ function podeEditar(C) { return !!(REMOTO && USER && (!C || !C.owner || C.owner 
 function legado() {
   try { var l = JSON.parse(localStorage.getItem('arena.legado')); return Array.isArray(l) ? migrar({ competicoes: l }).competicoes : []; } catch (e) { return []; }
 }
+function abrirNovaSenha() {
+  modal('Definir nova senha', '<label>Nova senha<input name="senha" type="password" minlength="6" required autocomplete="new-password"></label>', function (fd) {
+    Nuvem.novaSenha(fd.senha).then(function () { dlg.close(); toast('Senha alterada.'); }).catch(function (er) { toast(msgAuth(er)); });
+    return false;
+  }, 'Salvar senha');
+}
 function msgAuth(e) {
   var m = (e && e.message) || String(e);
   if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
@@ -253,6 +259,30 @@ function opts(lista, atual) {
 
 /* ---------- Telas ---------- */
 var app = $('#app');
+var FJ = 'todos';
+function icone(m) {
+  m = (m || '').toLowerCase();
+  if (/vôlei|volei|futev/.test(m)) return '🏐';
+  if (/tênis|tenis/.test(m)) return '🎾';
+  if (/basq/.test(m)) return '🏀';
+  if (/handeb/.test(m)) return '🤾';
+  if (/fut|soci|suíç|suic/.test(m)) return '⚽';
+  return '🏅';
+}
+function iniciais(n) {
+  return esc(String(n || '?').split(/[\s\/]+/).filter(Boolean).slice(0, 2).map(function (w) { return w.charAt(0); }).join('').toUpperCase());
+}
+function contagem(e) {
+  var js = e.jogos.filter(function (j) { return !j.bye; });
+  var fin = js.filter(function (j) { return j.status === 'fin'; }).length;
+  return { fin: fin, tot: js.length, pct: js.length ? Math.round(fin * 100 / js.length) : 0 };
+}
+function barra(pct) { return '<div class="prog"><i style="width:' + pct + '%"></i></div>'; }
+function statBox(n, rotulo) { return '<div class="stat"><b>' + n + '</b><span>' + rotulo + '</span></div>'; }
+function acoesPagina() {
+  return '<div class="row noprint"><button class="btn btn-o sm" data-act="compartilhar">🔗 Copiar link</button>' +
+    '<button class="btn btn-o sm" data-act="imprimir">🖨️ Imprimir</button></div>';
+}
 function route() {
   var h = location.hash.replace(/^#\/?/, '').split('/');
   var C = h[0] === 'c' && h[1] ? comp(h[1]) : null;
@@ -260,15 +290,17 @@ function route() {
   document.body.classList.toggle('publico', !!db.publico || !podeEditar(C));
   $('#btnPublico').textContent = db.publico ? 'Sair do modo público' : 'Modo público';
   $('#btnConta').textContent = USER ? 'Sair' : 'Entrar';
-  if (CARREGANDO) { app.innerHTML = '<div class="empty">Carregando dados…</div>'; return; }
+  $('#usuario').textContent = USER ? USER.email : '';
+  if (CARREGANDO) { app.innerHTML = '<div class="skel"></div><div class="skel" style="margin-top:16px"></div>'; return; }
   if (C && E) { CUR = { comp: C, esp: E }; telaComp(E, h[3] || 'classificacao'); }
   else if (C) telaCompeticao(C);
   else telaHome();
   var av = '';
-  if (ERRO) av += '<div class="banner" style="border-color:var(--err)">' + esc(ERRO) + '</div>';
-  else if (!USER) av += '<div class="banner">Você está na área pública (somente leitura). <b>Entre</b> para criar e gerenciar competições.</div>';
+  if (ERRO) av += '<div class="banner err">' + esc(ERRO) + '</div>';
+  else if (!USER) av += '<div class="banner row between noprint"><span>Você está na área pública, somente leitura. Entre para criar e gerenciar competições.</span>' +
+    '<button class="btn btn-p sm" data-act="conta">Entrar</button></div>';
   if (!C && USER && REMOTO && legado().length) {
-    av += '<div class="banner"><b>' + legado().length + ' competição(ões)</b> salva(s) neste navegador antes da conexão com a nuvem.' +
+    av += '<div class="banner ok"><b>' + legado().length + ' competição(ões)</b> salva(s) neste navegador antes da conexão com a nuvem.' +
       '<div class="row" style="margin-top:10px"><button class="btn btn-p" data-act="legadoEnviar">Enviar para a nuvem</button>' +
       '<button class="btn btn-o" data-act="legadoDescartar">Descartar</button></div></div>';
   }
@@ -277,65 +309,82 @@ function route() {
 function refresh() { save(); route(); }
 
 function telaHome() {
+  var nE = 0, nQ = 0, nJ = 0, nF = 0;
+  db.competicoes.forEach(function (C) {
+    nE += C.esportes.length;
+    C.esportes.forEach(function (e) { nQ += e.equipes.length; var k = contagem(e); nJ += k.tot; nF += k.fin; });
+  });
   var cards = db.competicoes.map(function (C) {
-    var eqs = C.esportes.reduce(function (n, e) { return n + e.equipes.length; }, 0);
-    var esp = C.esportes.map(function (e) { return e.modalidade; }).filter(function (m, i, a) { return a.indexOf(m) === i; }).join(', ');
-    return '<a class="card" href="#/c/' + C.id + '"><h3>' + esc(C.nome) + '</h3>' +
-      '<p class="mut">' + (C.local ? esc(C.local) + ' · ' : '') + (esp ? esc(esp) : 'Nenhum esporte cadastrado') + '</p>' +
-      '<p style="margin-top:8px"><span class="tag">' + C.esportes.length + ' esportes</span> <span class="tag">' + eqs + ' equipes</span></p></a>';
+    var eqs = 0, fin = 0, tot = 0;
+    C.esportes.forEach(function (e) { eqs += e.equipes.length; var k = contagem(e); fin += k.fin; tot += k.tot; });
+    var icos = C.esportes.map(function (e) { return icone(e.modalidade); }).filter(function (m, i, a) { return a.indexOf(m) === i; }).join(' ');
+    return '<a class="card" data-nome="' + esc((C.nome + ' ' + (C.local || '')).toLowerCase()) + '" href="#/c/' + C.id + '">' +
+      '<div class="top-line"><span class="ico">🏆</span><div><h3>' + esc(C.nome) + '</h3><p class="mut">' + esc(C.local || 'Competição esportiva') + '</p></div></div>' +
+      '<p style="font-size:1.2rem">' + (icos || '<span class="mut" style="font-size:.85rem">Nenhum esporte cadastrado</span>') + '</p>' +
+      '<div class="chips" style="margin-top:10px"><span class="tag blue">' + C.esportes.length + ' esportes</span><span class="tag">' + eqs + ' equipes</span>' +
+      '<span class="tag ok">' + fin + '/' + tot + ' jogos</span></div>' + barra(tot ? Math.round(fin * 100 / tot) : 0) + '</a>';
   }).join('');
-  app.innerHTML = '<div class="row between"><div><h1>Competições</h1><p class="mut">Crie a competição, cadastre os esportes e, em cada um, equipes, jogos e chaveamento.</p></div>' +
-    '<div class="row edit"><button class="btn btn-p" data-act="novaComp">Nova competição</button>' +
-    '<button class="btn btn-o" data-act="exportar">Exportar dados</button>' +
-    '<label class="btn btn-o" style="cursor:pointer">Importar dados<input type="file" id="imp" accept=".json" hidden></label></div></div>' +
-    (cards ? '<div class="grid" style="margin-top:22px">' + cards + '</div>'
-      : '<div class="empty" style="margin-top:22px">Nenhuma competição cadastrada ainda. Clique em “Nova competição”.</div>');
+  app.innerHTML = '<section class="hero"><h1>Toda a sua competição em um só lugar</h1>' +
+    '<p>Cadastre esportes, equipes e atletas, gere tabelas e chaveamentos e acompanhe os resultados em tempo real.</p>' +
+    '<div class="row">' + (USER ? '<button class="btn btn-p edit" data-act="novaComp">＋ Nova competição</button>' : '<button class="btn btn-p" data-act="conta">Entrar para gerenciar</button>') + '</div>' +
+    '<div class="stats">' + statBox(db.competicoes.length, 'Competições') + statBox(nE, 'Esportes') + statBox(nQ, 'Equipes') + statBox(nF + '/' + nJ, 'Jogos encerrados') + '</div></section>' +
+    '<div class="row between" style="margin-top:26px"><h2 style="margin:0">Competições</h2>' +
+    '<div class="row"><input class="search" id="busca" type="search" placeholder="Buscar competição…" aria-label="Buscar competição">' +
+    '<span class="row edit"><button class="btn btn-o sm" data-act="exportar">Exportar dados</button>' +
+    '<label class="btn btn-o sm" style="cursor:pointer">Importar dados<input type="file" id="imp" accept=".json" hidden></label></span></div></div>' +
+    (cards ? '<div class="grid" style="margin-top:14px" id="lista">' + cards + '</div>'
+      : '<div class="empty" style="margin-top:14px"><b>Nenhuma competição ainda</b>Clique em “Nova competição” para começar.</div>');
   var imp = $('#imp'); if (imp) imp.onchange = importar;
 }
 
 function telaCompeticao(C) {
+  var nQ = 0, nA = 0, nF = 0, nJ = 0;
+  C.esportes.forEach(function (e) { nQ += e.equipes.length; nA += e.atletas.length; var k = contagem(e); nF += k.fin; nJ += k.tot; });
   var cards = C.esportes.map(function (e) {
-    var fin = e.jogos.filter(function (j) { return j.status === 'fin' && !j.bye; }).length;
-    var tot = e.jogos.filter(function (j) { return !j.bye; }).length, ch = campeao(e);
-    return '<a class="card" href="#/c/' + C.id + '/' + e.id + '"><h3>' + esc(e.modalidade) + '</h3>' +
-      '<p class="mut">' + esc((e.categoria ? e.categoria + ' · ' : '') + e.sexo) + ' · ' + FORMATOS[e.formato] + '</p>' +
-      '<p style="margin-top:8px"><span class="tag">' + e.equipes.length + ' equipes</span> <span class="tag ok">' + fin + '/' + tot + ' jogos</span></p>' +
-      (ch ? '<p style="margin-top:8px">🏆 ' + nomeEq(e, ch) + '</p>' : '') + '</a>';
+    var k = contagem(e), ch = campeao(e);
+    return '<a class="card" href="#/c/' + C.id + '/' + e.id + '">' +
+      '<div class="top-line"><span class="ico">' + icone(e.modalidade) + '</span><div><h3>' + esc(e.modalidade) + '</h3>' +
+      '<p class="mut">' + esc((e.categoria ? e.categoria + ' · ' : '') + e.sexo) + '</p></div></div>' +
+      '<div class="chips"><span class="tag blue">' + FORMATOS[e.formato] + '</span><span class="tag">' + e.equipes.length + ' equipes</span>' +
+      '<span class="tag ok">' + k.fin + '/' + k.tot + ' jogos</span></div>' + barra(k.pct) +
+      (ch ? '<p style="margin-top:10px"><span class="champion">🏆 ' + nomeEq(e, ch) + '</span></p>' : '') + '</a>';
   }).join('');
-  app.innerHTML = '<a class="mut" href="#/">← Competições</a><div class="row between" style="margin-top:6px"><div><h1>' + esc(C.nome) + '</h1>' +
-    '<p class="mut">' + (C.local ? esc(C.local) : 'Competição') + '</p></div>' +
-    '<div class="row edit"><button class="btn btn-p" data-act="novoEsporte">Novo esporte</button>' +
-    '<button class="btn btn-o" data-act="editComp">Editar competição</button>' +
-    '<button class="btn btn-d" data-act="delComp">Excluir</button></div></div>' +
+  app.innerHTML = '<a class="crumb" href="#/">← Competições</a>' +
+    '<div class="phead"><div class="ptitle"><span class="ico">🏆</span><div><h1>' + esc(C.nome) + '</h1><p class="mut">' + esc(C.local || 'Competição esportiva') + '</p></div></div>' +
+    '<div class="row"><span class="row edit"><button class="btn btn-p" data-act="novoEsporte">＋ Novo esporte</button>' +
+    '<button class="btn btn-o" data-act="editComp">Editar</button><button class="btn btn-d" data-act="delComp">Excluir</button></span>' + acoesPagina() + '</div></div>' +
+    '<div class="stats">' + statBox(C.esportes.length, 'Esportes') + statBox(nQ, 'Equipes') + statBox(nA, 'Atletas') + statBox(nF + '/' + nJ, 'Jogos encerrados') + '</div>' +
     '<h2>Esportes</h2>' + (cards ? '<div class="grid">' + cards + '</div>'
-      : '<div class="empty">Nenhum esporte cadastrado. Clique em “Novo esporte” para incluir futsal, vôlei, basquete etc.</div>');
+      : '<div class="empty"><b>Nenhum esporte cadastrado</b>Use “Novo esporte” para incluir futsal, vôlei, basquete etc.</div>');
 }
 
 function telaComp(c, aba) {
-  var abas = [['classificacao', c.formato === 'mata' ? 'Chaveamento' : 'Classificação'], ['jogos', 'Jogos'],
-    ['equipes', 'Equipes'], ['atletas', 'Atletas'], ['estatisticas', 'Estatísticas'], ['config', 'Configuração']];
+  var abas = [['classificacao', c.formato === 'mata' ? 'Chaveamento' : 'Classificação', ''], ['jogos', 'Jogos', c.jogos.filter(function (j) { return !j.bye; }).length],
+    ['equipes', 'Equipes', c.equipes.length], ['atletas', 'Atletas', c.atletas.length], ['estatisticas', 'Estatísticas', ''], ['config', 'Configuração', '']];
   var tabs = abas.map(function (a) {
-    return '<a href="#/c/' + CUR.comp.id + '/' + c.id + '/' + a[0] + '" class="' + (a[0] === aba ? 'on' : '') + '">' + a[1] + '</a>';
+    return '<a href="#/c/' + CUR.comp.id + '/' + c.id + '/' + a[0] + '" class="' + (a[0] === aba ? 'on' : '') + '">' + a[1] + (a[2] !== '' ? '<small>' + a[2] + '</small>' : '') + '</a>';
   }).join('');
   var banner = '';
   if (!c.gerado) {
     banner = '<div class="banner edit"><b>Passo seguinte:</b> cadastre as equipes e gere os jogos. Depois de gerar, as equipes ficam travadas.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerar">Gerar jogos</button></div></div>';
   } else if (c.formato === 'grupos' && !c.mataGerado && gruposEncerrados(c)) {
-    banner = '<div class="banner edit"><b>Fase de grupos encerrada.</b> Gere o mata-mata com os ' + c.classificados + ' primeiros de cada grupo.' +
+    banner = '<div class="banner ok edit"><b>Fase de grupos encerrada.</b> Gere o mata-mata com os ' + c.classificados + ' primeiros de cada grupo.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerarFinal">Gerar mata-mata</button></div></div>';
   }
-  var ch = campeao(c);
+  var ch = campeao(c), k = contagem(c);
   var corpo = { classificacao: abaClass, jogos: abaJogos, equipes: abaEquipes, atletas: abaAtletas,
     estatisticas: abaStats, config: abaConfig }[aba] || abaClass;
-  app.innerHTML = '<a class="mut" href="#/c/' + CUR.comp.id + '">← ' + esc(CUR.comp.nome) + '</a><h1 style="margin-top:6px">' + esc(c.modalidade) + '</h1>' +
-    '<p class="mut">' + esc((c.categoria ? c.categoria + ' · ' : '') + c.sexo) + ' · ' + FORMATOS[c.formato] + '</p>' +
-    (ch ? '<p style="margin-top:8px">🏆 Campeão: <b>' + nomeEq(c, ch) + '</b></p>' : '') +
-    banner + '<div class="tabs">' + tabs + '</div>' + corpo(c);
+  app.innerHTML = '<a class="crumb" href="#/c/' + CUR.comp.id + '">← ' + esc(CUR.comp.nome) + '</a>' +
+    '<div class="phead"><div class="ptitle"><span class="ico">' + icone(c.modalidade) + '</span><div><h1>' + esc(c.modalidade) + '</h1>' +
+    '<div class="chips" style="margin-top:4px"><span class="tag">' + esc((c.categoria ? c.categoria + ' · ' : '') + c.sexo) + '</span><span class="tag blue">' + FORMATOS[c.formato] + '</span>' +
+    '<span class="tag ok">' + k.fin + '/' + k.tot + ' jogos · ' + k.pct + '%</span></div></div></div>' + acoesPagina() + '</div>' +
+    (ch ? '<div class="champion">🏆 Campeão: ' + nomeEq(c, ch) + '</div>' : '') +
+    '<div style="margin-top:16px">' + banner + '</div><div class="tabs">' + tabs + '</div>' + corpo(c);
 }
 
 function linhaTabela(c, t, i, qual) {
-  return '<tr class="' + (i < qual ? 'q' : '') + '"><td>' + (i + 1) + '</td><td class="l">' + nomeEq(c, t.id) + '</td><td><b>' + t.p + '</b></td><td>' + t.j +
+  return '<tr class="' + (i < qual ? 'q' : '') + '"><td>' + (i + 1) + '</td><td class="l"><span class="eqn"><span class="av">' + iniciais(nomeSimples(c, t.id)) + '</span>' + nomeEq(c, t.id) + '</span></td><td><b>' + t.p + '</b></td><td>' + t.j +
     '</td><td>' + t.v + '</td><td>' + t.e + '</td><td>' + t.d + '</td><td>' + t.gp + '</td><td>' + t.gc + '</td><td>' + t.sg + '</td></tr>';
 }
 function htmlTabela(c, fase, ids, qual) {
@@ -349,7 +398,7 @@ function abaClass(c) {
     fasesDe(c).forEach(function (f) { h += htmlTabela(c, f.nome, f.ids, c.formato === 'grupos' ? c.classificados : 0); });
     if (c.formato === 'grupos') h += '<p class="mut" style="margin-top:8px">A barra verde marca as vagas para o mata-mata.</p>';
   }
-  if (c.jogos.some(function (j) { return j.ko; })) h += '<h2>Chaveamento</h2>' + htmlChave(c);
+  if (c.jogos.some(function (j) { return j.ko; })) h += (c.formato === 'mata' ? '' : '<h2>Chaveamento</h2>') + htmlChave(c);
   return h;
 }
 function htmlChave(c) {
@@ -366,41 +415,51 @@ function htmlChave(c) {
       return '<div class="m" data-act="sumula" data-id="' + j.id + '">' + (j.nome ? '<div class="mh">' + esc(j.nome) + '</div>' : '') +
         lado(j.casa, j.gc, j.pc, j.rc) + lado(j.fora, j.gf, j.pf, j.rf) + '</div>';
     }).join('');
-    cols += '<div class="col"><h4>' + esc(daRodada[0].fase) + '</h4>' + ms + '</div>';
+    cols += '<div class="col"><h4>' + esc(daRodada[0].fase) + '</h4><div class="cm">' + ms + '</div></div>';
   }
   var ch = campeao(c);
-  cols += '<div class="col"><div class="champ">🏆<b>' + (ch ? nomeEq(c, ch) : '—') + '</b>Campeão</div></div>';
+  cols += '<div class="col fim"><h4>&nbsp;</h4><div class="cm"><div class="champ">🏆<b>' + (ch ? nomeEq(c, ch) : '—') + '</b><span>Campeão</span></div></div></div>';
   return '<div class="bracket">' + cols + '</div>';
 }
 
 function abaJogos(c) {
-  if (!c.gerado) return '<div class="empty">Gere os jogos para listar as partidas.</div>';
-  var h = '', ordem = [];
+  if (!c.gerado) return '<div class="empty"><b>Jogos ainda não gerados</b>Gere os jogos para listar as partidas.</div>';
+  var todos = c.jogos.filter(function (j) { return !j.bye; });
+  var nAg = todos.filter(function (j) { return j.status !== 'fin'; }).length;
+  var filtros = [['todos', 'Todos', todos.length], ['ag', 'A realizar', nAg], ['fin', 'Encerrados', todos.length - nAg]].map(function (f) {
+    return '<button class="chip ' + (FJ === f[0] ? 'on' : '') + '" data-act="filtro" data-v="' + f[0] + '">' + f[1] + ' (' + f[2] + ')</button>';
+  }).join('');
+  var h = '<div class="filtros">' + filtros + '</div>', ordem = [];
   c.jogos.forEach(function (j) {
     var k = j.fase + '|' + j.rodada;
     if (ordem.indexOf(k) < 0) ordem.push(k);
   });
   ordem.forEach(function (k) {
-    var p = k.split('|'), js = c.jogos.filter(function (j) { return j.fase === p[0] && String(j.rodada) === p[1] && !j.bye; });
+    var p = k.split('|'), js = c.jogos.filter(function (j) {
+      return j.fase === p[0] && String(j.rodada) === p[1] && !j.bye && (FJ === 'todos' || (FJ === 'fin') === (j.status === 'fin'));
+    });
     if (!js.length) return;
     h += '<h2>' + esc(p[0]) + (js[0].ko ? '' : ' · Rodada ' + p[1]) + '</h2>';
     js.forEach(function (j) {
       var fin = j.status === 'fin';
-      h += '<div class="jogo"><div class="dt">' + (j.nome ? '<b>' + esc(j.nome) + '</b> ' : '') + esc(fmtData(j.data)) + (j.local ? '<br>' + esc(j.local) : '') + '</div>' +
+      h += '<div class="jogo ' + (fin ? 'fin' : '') + '"><div class="dt">' + (j.nome ? '<b>' + esc(j.nome) + '</b> ' : '') +
+        (fin ? '<span class="tag ok">Encerrado</span>' : '<span class="tag">A realizar</span>') +
+        (j.data ? '<br>' + esc(fmtData(j.data)) : '') + (j.local ? '<br>' + esc(j.local) : '') + '</div>' +
         '<div class="c">' + nomeLado(c, j.casa, j.rc) + '</div><div class="pl">' + (fin ? j.gc + ' x ' + j.gf : 'x') +
-        (fin && j.pc != null && j.gc === j.gf ? '<div class="dt">pên. ' + j.pc + ' x ' + j.pf + '</div>' : '') + '</div>' +
+        (fin && j.pc != null && j.gc === j.gf ? '<div class="sub">pên. ' + j.pc + ' x ' + j.pf + '</div>' : '') + '</div>' +
         '<div class="f">' + nomeLado(c, j.fora, j.rf) + '</div><div class="ac">' +
         (j.casa && j.fora ? '<button class="btn btn-o sm edit" data-act="sumula" data-id="' + j.id + '">Súmula</button>' : '') + '</div></div>';
     });
   });
+  if (h.indexOf('class="jogo') < 0) h += '<div class="empty" style="margin-top:12px">Nenhuma partida neste filtro.</div>';
   return h;
 }
 
 function abaEquipes(c) {
   var lista = c.equipes.map(function (e) {
     var n = c.atletas.filter(function (a) { return a.equipeId === e.id; }).length;
-    return '<div class="card"><h3>' + esc(e.nome) + (e.sigla ? ' <span class="tag">' + esc(e.sigla) + '</span>' : '') + '</h3>' +
-      '<p class="mut">' + (e.tecnico ? 'Técnico: ' + esc(e.tecnico) + ' · ' : '') + n + ' atletas</p>' +
+    return '<div class="card"><div class="top-line"><span class="av" style="width:42px;height:42px;font-size:.85rem;margin:0">' + iniciais(e.nome) + '</span><div><h3>' + esc(e.nome) + (e.sigla ? ' <span class="tag">' + esc(e.sigla) + '</span>' : '') + '</h3>' +
+      '<p class="mut">' + (e.tecnico ? 'Técnico: ' + esc(e.tecnico) + ' · ' : '') + n + ' atletas</p></div></div>' +
       '<div class="row edit" style="margin-top:10px"><button class="btn btn-o sm" data-act="editEquipe" data-id="' + e.id + '">Editar</button>' +
       (c.gerado ? '' : '<button class="btn btn-d sm" data-act="delEquipe" data-id="' + e.id + '">Excluir</button>') + '</div></div>';
   }).join('');
@@ -586,13 +645,25 @@ document.addEventListener('click', function (e) {
 
   if (act === 'fechar') { S = null; dlg.close(); }
   else if (act === 'publico') { db.publico = !db.publico; refresh(); }
+  else if (act === 'filtro') { FJ = el.dataset.v; route(); }
+  else if (act === 'compartilhar') {
+    var url = location.href;
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast('Link copiado.'); }, function () { prompt('Copie o link:', url); });
+  }
+  else if (act === 'imprimir') { window.print(); }
+  else if (act === 'recuperar') {
+    var em = $('#mf').email.value.trim();
+    if (!em) { toast('Informe o e-mail para receber o link.'); return; }
+    Nuvem.recuperar(em).then(function () { toast('Enviamos um link de redefinição para o e-mail.'); }).catch(function (er) { toast(msgAuth(er)); });
+  }
   else if (act === 'conta') {
     if (USER) { Nuvem.sair().then(function () { toast('Sessão encerrada.'); }); return; }
     modal('Entrar',
       '<label>E-mail<input name="email" type="email" required autocomplete="username"></label>' +
       '<label>Senha<input name="senha" type="password" required minlength="6" autocomplete="current-password"></label>' +
       '<p class="mut">Ainda não tem conta? Preencha e use “Criar conta”.</p>' +
-      '<div><button type="button" class="btn btn-o sm" data-act="cadastrar">Criar conta</button></div>',
+      '<div class="row"><button type="button" class="btn btn-o sm" data-act="cadastrar">Criar conta</button>' +
+      '<button type="button" class="link" data-act="recuperar">Esqueci a senha</button></div>',
       function (fd) {
         Nuvem.entrar(fd.email.trim(), fd.senha).then(function () { dlg.close(); toast('Bem-vindo!'); })
           .catch(function (er) { toast(msgAuth(er)); });
@@ -721,6 +792,17 @@ document.addEventListener('click', function (e) {
 
 dlg.addEventListener('close', function () { S = null; });
 window.addEventListener('hashchange', route);
+document.addEventListener('input', function (e) {
+  if (e.target.id !== 'busca') return;
+  var q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('#lista .card').forEach(function (c) { c.style.display = !q || c.dataset.nome.indexOf(q) >= 0 ? '' : 'none'; });
+});
+setInterval(function () {
+  if (!REMOTO || USER || document.hidden || dlg.open) return;
+  Nuvem.carregar().then(function (comps) {
+    if (JSON.stringify(comps) !== JSON.stringify(db.competicoes)) { db.competicoes = comps; route(); }
+  }).catch(function () {});
+}, 30000);
 
 (function iniciar() {
   try {
@@ -736,7 +818,12 @@ window.addEventListener('hashchange', route);
     if (st === 'erro') toast('Erro ao salvar na nuvem: ' + msg); else if (st === 'ok') toast('Salvo na nuvem.');
   });
   route();
-  Nuvem.iniciar(function (u) { USER = u; if (!CARREGANDO) route(); })
+  Nuvem.iniciar(function (u, ev) {
+    var mudou = (u && u.id) !== (USER && USER.id);
+    USER = u;
+    if (!CARREGANDO && mudou) route();
+    if (ev === 'PASSWORD_RECOVERY') abrirNovaSenha();
+  })
     .then(function () { return Nuvem.carregar(); })
     .then(function (comps) {
       db.competicoes = comps; REMOTO = true; CARREGANDO = false;

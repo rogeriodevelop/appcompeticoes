@@ -161,8 +161,8 @@ window.Nuvem = {
   aoStatus: function (fn) { aoStatus = fn; },
   async iniciar(aoMudarUsuario) {
     var s = await cli.auth.getSession();
-    aoMudarUsuario(s.data.session ? s.data.session.user : null);
-    cli.auth.onAuthStateChange(function (ev, sessao) { aoMudarUsuario(sessao ? sessao.user : null); });
+    aoMudarUsuario(s.data.session ? s.data.session.user : null, 'INITIAL');
+    cli.auth.onAuthStateChange(function (ev, sessao) { aoMudarUsuario(sessao ? sessao.user : null, ev); });
   },
   async carregar() {
     var T = {};
@@ -185,6 +185,14 @@ window.Nuvem = {
     if (r.error) throw r.error;
     return !!r.data.session;
   },
-  async sair() { await cli.auth.signOut(); }
+  async sair() { await cli.auth.signOut(); },
+  async recuperar(email) {
+    var r = await cli.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if (r.error) throw r.error;
+  },
+  async novaSenha(senha) {
+    var r = await cli.auth.updateUser({ password: senha });
+    if (r.error) throw r.error;
+  }
 };
 })();

@@ -4,22 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel – Arena Competições</title>
+<meta name="theme-color" content="#0f2a5c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <header class="top">
  <div class="wrap bar">
-  <a class="brand" href="index.html">ARENA COMPETIÇÕES<small>Gestão Esportiva</small></a>
+  <a class="brand" href="index.html"><span class="logo">🏆</span><span>ARENA COMPETIÇÕES<small>Gestão Esportiva</small></span></a>
   <nav>
-   <a href="#/">Competições</a>
+   <a class="nl" href="#/">Competições</a>
+   <a class="nl" href="index.html">Início</a>
+   <span class="user" id="usuario"></span>
    <button class="btn btn-o sm" data-act="publico" id="btnPublico">Modo público</button>
    <button class="btn btn-p sm" data-act="conta" id="btnConta">Entrar</button>
   </nav>
  </div>
 </header>
-<main class="wrap" id="app"></main>
+<main class="wrap" id="app"><div class="skel"></div></main>
+<footer class="rod"><div class="wrap row between"><span>© <span id="ano"></span> Arena Competições</span><span>Resultados, tabelas e chaveamentos em tempo real</span></div></footer>
 <dialog id="dlg"></dialog>
 <div id="toast" role="status"></div>
+<script>document.getElementById('ano').textContent = new Date().getFullYear();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="nuvem.js"></script>
 <script src="app.js"></script>
