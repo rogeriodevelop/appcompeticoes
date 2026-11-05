@@ -128,6 +128,13 @@ function gerarJogos(c) {
   if (c.mataGerado) propagar(c);
   return null;
 }
+function equipesFora(c) {
+  if (!c.gerado) return [];
+  var dentro = {};
+  c.jogos.forEach(function (j) { if (j.casa) dentro[j.casa] = 1; if (j.fora) dentro[j.fora] = 1; });
+  return c.equipes.filter(function (e) { return !dentro[e.id]; });
+}
+function rotuloGeracao(c) { return c.formato === 'mata' ? 'chaveamento' : 'jogos'; }
 function seedOrder(p) {
   var s = [1];
   while (s.length < p) { var n = s.length * 2; s = s.reduce(function (a, x) { a.push(x, n + 1 - x); return a; }, []); }
@@ -365,10 +372,14 @@ function telaComp(c, aba) {
   var tabs = abas.map(function (a) {
     return '<a href="#/c/' + CUR.comp.id + '/' + c.id + '/' + a[0] + '" class="' + (a[0] === aba ? 'on' : '') + '">' + a[1] + (a[2] !== '' ? '<small>' + a[2] + '</small>' : '') + '</a>';
   }).join('');
-  var banner = '';
+  var banner = '', fora = equipesFora(c);
   if (!c.gerado) {
-    banner = '<div class="banner edit"><b>Passo seguinte:</b> cadastre as equipes e gere os jogos. Depois de gerar, as equipes ficam travadas.' +
+    banner = '<div class="banner edit"><b>Passo seguinte:</b> cadastre as equipes e gere os jogos. Se entrarem novas equipes depois, é possível regerar o ' + rotuloGeracao(c) + '.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerar">Gerar jogos</button></div></div>';
+  } else if (fora.length) {
+    banner = '<div class="banner edit"><b>' + fora.length + (fora.length === 1 ? ' equipe nova' : ' equipes novas') + ' fora do ' + rotuloGeracao(c) + ':</b> ' +
+      fora.map(function (e) { return esc(e.nome); }).join(', ') + '. Regere para incluí-' + (fora.length === 1 ? 'la' : 'las') + '. Os resultados já lançados serão apagados.' +
+      '<div style="margin-top:10px"><button class="btn btn-p" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button></div></div>';
   } else if (c.formato === 'grupos' && !c.mataGerado && gruposEncerrados(c)) {
     banner = '<div class="banner ok edit"><b>Fase de grupos encerrada.</b> Gere o mata-mata com os ' + c.classificados + ' primeiros de cada grupo.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerarFinal">Gerar mata-mata</button></div></div>';
@@ -462,11 +473,12 @@ function abaEquipes(c) {
     return '<div class="card"><div class="top-line"><span class="av" style="width:42px;height:42px;font-size:.85rem;margin:0">' + iniciais(e.nome) + '</span><div><h3>' + esc(e.nome) + (e.sigla ? ' <span class="tag">' + esc(e.sigla) + '</span>' : '') + '</h3>' +
       '<p class="mut">' + (e.tecnico ? 'Técnico: ' + esc(e.tecnico) + ' · ' : '') + n + ' atletas</p></div></div>' +
       '<div class="row edit" style="margin-top:10px"><button class="btn btn-o sm" data-act="editEquipe" data-id="' + e.id + '">Editar</button>' +
-      (c.gerado ? '' : '<button class="btn btn-d sm" data-act="delEquipe" data-id="' + e.id + '">Excluir</button>') + '</div></div>';
+      (!c.gerado || equipesFora(c).indexOf(e) >= 0 ? '<button class="btn btn-d sm" data-act="delEquipe" data-id="' + e.id + '">Excluir</button>' : '') + '</div></div>';
   }).join('');
   return '<div class="row between"><h2 style="margin:0">Equipes (' + c.equipes.length + ')</h2>' +
-    (c.gerado ? '' : '<button class="btn btn-p edit" data-act="novaEquipe">Nova equipe</button>') + '</div>' +
-    (c.gerado ? '<p class="mut">Os jogos já foram gerados; para incluir ou excluir equipes, reinicie os jogos na aba Configuração.</p>' : '') +
+    '<span class="row edit">' + (c.gerado ? '<button class="btn btn-o" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button>' : '') +
+    '<button class="btn btn-p" data-act="novaEquipe">Nova equipe</button></span></div>' +
+    (c.gerado ? '<p class="mut edit">Os jogos já foram gerados. Equipes novas só entram no ' + rotuloGeracao(c) + ' depois de regerá-lo; equipes que já jogam não podem ser excluídas.</p>' : '') +
     (lista ? '<div class="grid" style="margin-top:14px">' + lista + '</div>' : '<div class="empty" style="margin-top:14px">Nenhuma equipe cadastrada.</div>');
 }
 
@@ -571,7 +583,7 @@ function abaRegras(c) {
 function abaConfig(c) {
   return '<div class="card edit"><h3>Dados do esporte</h3><p class="mut">Formato, turnos e grupos só mudam antes de gerar os jogos.</p>' +
     '<div class="row" style="margin-top:10px"><button class="btn btn-p" data-act="editEsporte">Editar dados</button>' +
-    (c.gerado ? '<button class="btn btn-o" data-act="reiniciar">Reiniciar jogos</button>' : '') +
+    (c.gerado ? '<button class="btn btn-o" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button> <button class="btn btn-o" data-act="reiniciar">Reiniciar jogos</button>' : '') +
     '<button class="btn btn-d" data-act="delEsporte">Excluir esporte</button></div></div>' +
     '<p class="mut" style="margin-top:14px">Critérios de classificação: pontos (V=3, E=1), vitórias, saldo, gols/pontos pró e ordem alfabética. No mata-mata, empate se resolve nos pênaltis.</p>';
 }
@@ -755,6 +767,13 @@ document.addEventListener('click', function (e) {
   }
   else if (act === 'gerarFinal') {
     var m2 = gerarFinal(c); if (m2) toast(m2); else { refresh(); toast('Mata-mata gerado.'); }
+  }
+  else if (act === 'regerar') {
+    var tem = c.jogos.some(function (j) { return j.status === 'fin' && !j.bye; });
+    if (confirm('Regerar o ' + rotuloGeracao(c) + ' com as ' + c.equipes.length + ' equipes cadastradas?' + (tem ? ' Os resultados já lançados serão apagados.' : ''))) {
+      c.jogos = []; c.grupos = []; c.gerado = false; c.mataGerado = false;
+      var m3 = gerarJogos(c); refresh(); toast(m3 || (rotuloGeracao(c) === 'jogos' ? 'Jogos regerados.' : 'Chaveamento regerado.'));
+    }
   }
   else if (act === 'reiniciar') {
     if (confirm('Apagar todos os jogos e resultados e liberar as equipes para edição?')) {
