@@ -154,9 +154,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
 
 <section class="alt" id="ao-vivo">
  <div class="wrap">
-  <div class="eyebrow">Ao vivo</div>
-  <h2>Competições em andamento</h2>
-  <p class="sub">Clique em uma competição para ver esportes, jogos, chaveamentos e classificações.</p>
+  <div class="eyebrow">Exemplos</div>
+  <h2>Cada competição ganha a sua página</h2>
+  <p class="sub">Exemplos fictícios do que o público vê: esportes, jogos, chaveamentos e classificações em um só endereço.</p>
   <div class="grid g3" id="listaVivo"><div class="card"><p>Carregando competições…</p></div></div>
  </div>
 </section>
@@ -364,24 +364,19 @@ document.getElementById("vitrineRegras").innerHTML = ["futebol", "futsal", "vole
   return r ? '<a class="card live" href="regulamentos.html#' + r.id + '"><div class="ico">' + r.ico + "</div><h3>" + esc(r.nome) + "</h3><p>" + esc(r.cat) + "</p></a>" : "";
 }).join("");
 
-/* competições reais do banco */
-fetch(SUPA + "/rest/v1/competicoes?select=id,nome,local,esportes(id,modalidade,sexo,ordem)&order=ordem", { headers: { apikey: CHAVE } })
-  .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(function (lista) {
-    var box = document.getElementById("listaVivo");
-    if (!lista.length) { box.innerHTML = '<div class="card"><h3>Em breve</h3><p>Nenhuma competição publicada ainda.</p></div>'; return; }
-    box.innerHTML = lista.map(function (c) {
-      var esp = (c.esportes || []).sort(function (a, b) { return a.ordem - b.ordem; });
-      var nomes = esp.map(function (e) { return e.modalidade; }).filter(function (m, i, a) { return a.indexOf(m) === i; });
-      var chips = nomes.map(function (m) { return '<span class="esp">' + icone(m) + " " + esc(m) + "</span>"; }).join("");
-      return '<a class="card live comp" href="app.html#/c/' + encodeURIComponent(c.id) + '"><div class="topo"><span class="live-tag"><i></i>Em andamento</span><h3>' + esc(c.nome) + '</h3><p>' +
-        esc(c.local || "Competição esportiva") + '</p></div><div class="corpo"><div class="esps">' + chips + '</div><div class="ver"><span>' +
-        esp.length + (esp.length === 1 ? " disputa" : " disputas") + ' · ver jogos e tabelas</span><b>→</b></div></div></a>';
-    }).join("");
-  })
-  .catch(function () {
-    document.getElementById("listaVivo").innerHTML = '<div class="card"><h3>Competições</h3><p>Não foi possível carregar agora. <a href="app.html" style="color:var(--blue);font-weight:600">Abrir o painel</a>.</p></div>';
-  });
+/* exemplo fictício de competição (a propaganda não usa dados reais) */
+(function () {
+  var ex = [
+    { nome: "Copa Horizonte de Esportes", local: "Ginásio Municipal · Centro Esportivo", esp: ["Futsal", "Vôlei de quadra", "Basquete"], n: 3 },
+    { nome: "Torneio Interescolar de Verão", local: "Complexo Esportivo Escolar", esp: ["Futebol Society", "Handebol", "Vôlei de Praia"], n: 3 },
+    { nome: "Liga Master Amadora", local: "Arena Municipal", esp: ["Futebol Suíço", "Beach Tênis"], n: 2 }
+  ];
+  document.getElementById("listaVivo").innerHTML = ex.map(function (c) {
+    var chips = c.esp.map(function (m) { return '<span class="esp">' + icone(m) + " " + esc(m) + "</span>"; }).join("");
+    return '<a class="card live comp" href="app.html"><div class="topo"><span class="live-tag"><i></i>Exemplo</span><h3>' + esc(c.nome) + "</h3><p>" + esc(c.local) +
+      '</p></div><div class="corpo"><div class="esps">' + chips + '</div><div class="ver"><span>' + c.n + " disputas · começar a minha</span><b>→</b></div></div></a>";
+  }).join("");
+})();
 
 /* contato: grava na tabela "contatos" do Supabase */
 var dlg = document.getElementById("dlg"), frm = document.getElementById("frm"), msg = document.getElementById("frmMsg"), btn = document.getElementById("frmBtn");
