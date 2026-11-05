@@ -1,0 +1,6 @@
+# Dados pessoais (nomes de atletas/alunos) e arquivos locais: não vão para o GitHub
+dados/jifena-importar.json
+supabase/jifena-seed.sql
+.vercel
+node_modules
+dados/

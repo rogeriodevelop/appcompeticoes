@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arena Competições – Gestão Esportiva</title>
+<meta name="description" content="Sistema único para a sua competição esportiva: o torcedor acompanha em tempo real e o gestor administra do cadastro à súmula.">
+<style>
+:root{--bg:#0b1220;--bg2:#111a2e;--card:#16213a;--txt:#e8edf7;--mut:#9fb0cc;--pri:#22c55e;--pri2:#16a34a;--acc:#3b82f6;--bd:#233252}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header{position:sticky;top:0;z-index:10;background:rgba(11,18,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
+.logo{font-weight:800;letter-spacing:.5px}.logo small{display:block;font-size:.65rem;font-weight:500;color:var(--mut);letter-spacing:1px}
+nav ul{display:flex;gap:18px;list-style:none;font-size:.9rem;color:var(--mut)}
+nav a:hover{color:var(--txt)}
+.btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:600;border:1px solid transparent;cursor:pointer;font-size:.95rem}
+.btn-p{background:var(--pri);color:#04210f}.btn-p:hover{background:var(--pri2)}
+.btn-o{border-color:var(--bd);color:var(--txt)}.btn-o:hover{border-color:var(--pri)}
+.menu-btn{display:none;background:none;border:0;color:var(--txt);font-size:1.6rem}
+section{padding:72px 0}
+.alt{background:var(--bg2)}
+.eyebrow{color:var(--pri);font-size:.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.15;margin-bottom:18px}
+h2{font-size:clamp(1.6rem,3.5vw,2.3rem);margin-bottom:10px}
+.sub{color:var(--mut);max-width:680px;margin-bottom:36px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero p{color:var(--mut);margin-bottom:24px;max-width:560px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.tags{display:flex;gap:16px;flex-wrap:wrap;color:var(--mut);font-size:.85rem}
+.phone{background:var(--card);border:1px solid var(--bd);border-radius:28px;padding:18px;max-width:300px;margin:auto}
+.phone .row{background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:.9rem}
+.phone .row b{color:var(--pri)}
+.grid{display:grid;gap:18px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:22px}
+.card h3{font-size:1.05rem;margin-bottom:6px}.card p{color:var(--mut);font-size:.92rem}
+.ico{font-size:1.6rem;margin-bottom:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.two p{color:var(--mut);margin-bottom:14px}
+.group{margin-top:28px;font-size:.85rem;color:var(--pri);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.gallery{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.shot{aspect-ratio:9/16;background:var(--card);border:1px dashed var(--bd);border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.8rem;color:var(--mut);padding:8px}
+.stores{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.num{color:var(--acc);font-weight:800;margin-right:6px}
+.cta{text-align:center}.cta .sub{margin-left:auto;margin-right:auto}.cta .actions{justify-content:center}
+footer{border-top:1px solid var(--bd);padding:40px 0 24px;font-size:.9rem;color:var(--mut)}
+.fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;margin-bottom:28px}
+footer h4{color:var(--txt);margin-bottom:10px;font-size:.9rem}footer li{list-style:none;margin-bottom:6px}footer a:hover{color:var(--txt)}
+.copy{border-top:1px solid var(--bd);padding-top:18px;font-size:.8rem}
+dialog{margin:auto;background:var(--card);color:var(--txt);border:1px solid var(--bd);border-radius:16px;padding:26px;width:min(520px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+form{display:grid;gap:12px;margin-top:14px}
+label{font-size:.82rem;color:var(--mut);display:grid;gap:4px}
+input,select,textarea{background:var(--bg2);border:1px solid var(--bd);color:var(--txt);border-radius:8px;padding:10px;font:inherit}
+.close{float:right;background:none;border:0;color:var(--mut);font-size:1.5rem;cursor:pointer}
+@media(max-width:900px){
+ .hero,.two{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}
+ .gallery{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}
+ .menu-btn{display:block}nav ul{display:none;position:absolute;top:64px;left:0;right:0;background:var(--bg);flex-direction:column;padding:16px 20px;border-bottom:1px solid var(--bd)}
+ nav ul.open{display:flex}
+}
+@media(max-width:560px){.g4,.g3,.g2,.fgrid{grid-template-columns:1fr}section{padding:52px 0}}
+</style>
+</head>
+<body id="topo">
+<header>
+ <div class="wrap nav">
+  <a class="logo" href="#topo">ARENA COMPETIÇÕES<small>Gestão Esportiva</small></a>
+  <nav>
+   <button class="menu-btn" aria-label="Abrir menu" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
+   <ul id="menu" onclick="this.classList.remove('open')">
+    <li><a href="#sobre">Sobre</a></li><li><a href="#recursos">Recursos</a></li><li><a href="#app">Aplicativo</a></li>
+    <li><a href="#gestao">Gestão</a></li><li><a href="#tecnologia">Plataforma</a></li><li><a href="#contato">Contato</a></li>
+   </ul>
+  </nav>
+  <a class="btn btn-p" href="app.html">Acessar painel</a>
+ </div>
+</header>
+
+<section>
+ <div class="wrap hero">
+  <div>
+   <div class="eyebrow">Um só sistema · público e administração</div>
+   <h1>Toda a sua competição esportiva em um só lugar</h1>
+   <p>O sistema único da sua competição: o torcedor acompanha tudo em tempo real e o gestor administra do cadastro à súmula, <strong>no celular e no navegador</strong>, na mesma plataforma.</p>
+   <div class="actions"><a class="btn btn-p" href="#recursos">Conheça os recursos</a><a class="btn btn-o" href="app.html">Área do Gestor</a></div>
+   <div class="tags"><span>✔ Android, iOS e Web</span><span>✔ Público + Gestão</span><span>✔ Súmula off-line</span></div>
+  </div>
+  <div class="phone" aria-hidden="true">
+   <div class="row"><span>Time A</span><b>2 x 1</b><span>Time B</span></div>
+   <div class="row"><span>Time C</span><b>0 x 0</b><span>Time D</span></div>
+   <div class="row"><span>1º Time A</span><b>12 pts</b></div>
+   <div class="row"><span>2º Time C</span><b>9 pts</b></div>
+  </div>
+ </div>
+ <div class="wrap grid g4" style="margin-top:44px">
+  <div class="card"><div class="ico">⚡</div><h3>Tempo real</h3><p>Placares e súmulas atualizados ao vivo.</p></div>
+  <div class="card"><div class="ico">🏆</div><h3>Multimodal</h3><p>Futsal, vôlei, basquete e muito mais.</p></div>
+  <div class="card"><div class="ico">☁️</div><h3>100% em nuvem</h3><p>Sem instalação, acesso de qualquer lugar.</p></div>
+  <div class="card"><div class="ico">💻</div><h3>App + Web</h3><p>Mesmo sistema no celular e no navegador.</p></div>
+ </div>
+</section>
+
+<section class="alt" id="sobre">
+ <div class="wrap two">
+  <div>
+   <div class="eyebrow">O que é</div>
+   <h2>Um sistema único, do torcedor ao gestor</h2>
+   <p>Reúne, em uma só plataforma, a consulta pública e a administração completa da competição. Para o torcedor, é o acesso em tempo real a resultados, classificações e estatísticas. Para o gestor, é o sistema que organiza tudo, do cadastro à súmula.</p>
+   <p>A mesma experiência no celular e no navegador. Sem instalação, sem burocracia, sempre online.</p>
+  </div>
+  <div class="grid">
+   <div class="card"><h3>Consulta pública</h3><p>Resultados e tabelas abertos a todos.</p></div>
+   <div class="card"><h3>Gestão completa</h3><p>Do cadastro à súmula e aos relatórios.</p></div>
+   <div class="card"><h3>App + Web</h3><p>O mesmo sistema em todo dispositivo.</p></div>
+  </div>
+ </div>
+</section>
+
+<section id="recursos">
+ <div class="wrap">
+  <h2>Tudo o que o torcedor precisa saber</h2>
+  <p class="sub">Seis módulos de consulta que cobrem o ciclo completo de uma competição.</p>
+  <div class="grid g3">
+   <div class="card"><h3>Acompanhamento de Competições</h3><p>Campeonatos ativos e finalizados, filtrados por modalidade, categoria e sexo.</p></div>
+   <div class="card"><h3>Tabela de Jogos e Resultados</h3><p>Calendário completo de partidas, datas, horários, locais e placares atualizados.</p></div>
+   <div class="card"><h3>Classificação e Chaveamentos</h3><p>Pontuação da fase de grupos e cruzamentos das fases eliminatórias.</p></div>
+   <div class="card"><h3>Perfil de Equipes e Atletas</h3><p>Equipes confirmadas, elencos, comissões técnicas e relatórios, com escudos.</p></div>
+   <div class="card"><h3>Estatísticas Gerais</h3><p>Rankings de artilharia, defesa menos vazada, cartões e punições.</p></div>
+   <div class="card"><h3>Consulta de Documentos</h3><p>Regulamentos, notas oficiais e comunicados gerados no sistema.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="alt" id="publico">
+ <div class="wrap">
+  <h2>Feito para todos os lados da quadra</h2>
+  <div class="group">Torcida e equipes</div>
+  <div class="grid g4">
+   <div class="card"><h3>Torcedores</h3><p>Acompanhe seu time, resultados e tabelas de onde estiver.</p></div>
+   <div class="card"><h3>Atletas</h3><p>Agenda de jogos, estatísticas individuais e situação disciplinar.</p></div>
+   <div class="card"><h3>Comissões Técnicas</h3><p>Elencos, escalações e relatórios sempre à mão.</p></div>
+   <div class="card"><h3>Dirigentes</h3><p>Documentação, inscrições e gestão da equipe em um só lugar.</p></div>
+  </div>
+  <div class="group">Gestão e poder público</div>
+  <div class="grid g3">
+   <div class="card"><h3>Gestores Esportivos</h3><p>Visão completa de competições, equipes e estatísticas.</p></div>
+   <div class="card"><h3>Secretarias de Esportes</h3><p>Campeonatos municipais e regionais com transparência total.</p></div>
+   <div class="card"><h3>Administração Pública</h3><p>Divulgação oficial e prestação de contas dos eventos esportivos.</p></div>
+  </div>
+ </div>
+</section>
+
+<section id="app">
+ <div class="wrap">
+  <h2>Veja o sistema em ação</h2>
+  <p class="sub">Da tela inicial à súmula ao vivo, uma experiência pensada para a quadra e para a arquibancada.</p>
+  <div class="stores">
+   <a class="btn btn-o" href="#contato" data-contato>Baixar na App Store</a>
+   <a class="btn btn-o" href="#contato" data-contato>Baixar no Google Play</a>
+  </div>
+  <div class="gallery">
+   <div class="shot">Tela inicial</div><div class="shot">Modalidades</div><div class="shot">Classificação</div><div class="shot">Estatísticas</div><div class="shot">Súmula ao vivo</div>
+  </div>
+ </div>
+</section>
+
+<section class="alt" id="gestao">
+ <div class="wrap">
+  <div class="eyebrow">Da arquibancada à mesa de controle</div>
+  <h2>Sistema de Gestão</h2>
+  <p class="sub">Para perfis autorizados, o sistema de administração completo da competição, com as mesmas telas no celular e no navegador e acesso por perfil (Gestor, Dirigente e Organização).</p>
+  <div class="grid g2">
+   <div class="card"><div class="ico">📝</div><h3>Súmula off-line</h3><p>Apontamento de gols, cartões e substituições direto da quadra. Funciona sem internet e sincroniza ao reconectar.</p></div>
+   <div class="card"><div class="ico">🛡️</div><h3>Validação de cadastros</h3><p>Cadastros mais confiáveis, com conferência de identidade e sem duplicidade.</p></div>
+   <div class="card"><div class="ico">⚖️</div><h3>Tribunal: suspensões e julgamentos</h3><p>Lançamento rápido de suspensões, multas e atas de julgamento.</p></div>
+   <div class="card"><div class="ico">📄</div><h3>Relatórios e Documentos</h3><p>Credenciais, notas oficiais e relatórios em PDF, com compartilhamento nativo.</p></div>
+  </div>
+ </div>
+</section>
+
+<section id="tecnologia">
+ <div class="wrap">
+  <h2>Um sistema, todos os dispositivos</h2>
+  <p class="sub">A mesma experiência no celular e no navegador, sempre em nuvem.</p>
+  <div class="grid g4">
+   <div class="card"><h3>Multiplataforma</h3><p>Um só código para Android, iOS e navegador, com interface fluida em qualquer tela.</p></div>
+   <div class="card"><h3>Sistema único</h3><p>A mesma plataforma para o torcedor consultar e para a organização administrar.</p></div>
+   <div class="card"><h3>100% em nuvem</h3><p>Acesso online de qualquer lugar, com dados sempre atualizados.</p></div>
+   <div class="card"><h3>Acesso por perfil</h3><p>Login protegido e permissões por módulo: cada usuário vê apenas o que pode.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="alt" id="roadmap">
+ <div class="wrap">
+  <h2>O que vem por aí</h2>
+  <p class="sub">O que já entregamos e o que estamos construindo para a torcida e os gestores.</p>
+  <div class="group">Já disponível</div>
+  <div class="grid g3">
+   <div class="card"><h3>Notificações Push</h3><p>Alertas de horários, notas oficiais, início de partidas e gols.</p></div>
+   <div class="card"><h3>Súmula ao vivo</h3><p>Eventos da súmula em tempo real, gol a gol.</p></div>
+   <div class="card"><h3>Área do Dirigente</h3><p>Envio de documentos, fotos e atualização dos dados do time.</p></div>
+  </div>
+  <div class="group">Em breve</div>
+  <div class="grid g3">
+   <div class="card"><h3><span class="num">01</span>Placar em Tempo Real</h3><p>O placar atualiza sozinho, sem recarregar a página.</p></div>
+   <div class="card"><h3><span class="num">02</span>Craque da Partida</h3><p>Torcedores votam no melhor em campo durante o jogo.</p></div>
+   <div class="card"><h3><span class="num">03</span>Mídia Integrada</h3><p>Links de transmissões ao vivo em cada confronto.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="cta" id="contato">
+ <div class="wrap">
+  <h2>Leve sua competição para o próximo nível</h2>
+  <p class="sub">Transparência para a torcida, agilidade para a gestão. Fale com a nossa equipe e conheça o sistema.</p>
+  <div class="actions"><button class="btn btn-p" data-contato>Falar com a equipe</button><a class="btn btn-o" href="#topo">Voltar ao topo</a></div>
+  <p class="tags" style="justify-content:center">Disponível para Android, iOS e Web</p>
+ </div>
+</section>
+
+<footer>
+ <div class="wrap">
+  <div class="fgrid">
+   <div><div class="logo">ARENA COMPETIÇÕES<small>Gestão Esportiva</small></div><p style="margin-top:10px">A plataforma de transparência e gestão para o esporte. Resultados, classificações e estatísticas em tempo real.</p></div>
+   <div><h4>Plataforma</h4><ul><li><a href="#sobre">Sobre</a></li><li><a href="#recursos">Recursos</a></li><li><a href="#app">Aplicativo</a></li><li><a href="#gestao">Área do Gestor</a></li></ul></div>
+   <div><h4>Recursos</h4><ul><li><a href="#tecnologia">Plataforma</a></li><li><a href="#roadmap">Novidades</a></li><li><a href="#publico">Para quem é</a></li></ul></div>
+   <div><h4>Legal e contato</h4><ul><li><a href="#">Política de Privacidade</a></li><li><a href="#">Excluir conta</a></li><li><a href="#contato" data-contato>Fale conosco</a></li></ul></div>
+  </div>
+  <div class="copy">© <span id="ano">2026</span> Arena Competições. Todos os direitos reservados.</div>
+ </div>
+</footer>
+
+<dialog id="dlg">
+ <button class="close" aria-label="Fechar" onclick="dlg.close()">×</button>
+ <h3>Falar com a equipe</h3>
+ <p style="color:var(--mut);font-size:.9rem">Conte seu interesse. Retornaremos pelo e-mail ou WhatsApp informado.</p>
+ <form id="frm">
+  <label>Nome *<input name="nome" required></label>
+  <label>E-mail *<input name="email" type="email" required></label>
+  <label>WhatsApp *<input name="whats" required></label>
+  <label>Tipo de gestor *<select name="tipo" required><option value="">Selecione</option><option>Particular</option><option>Público</option></select></label>
+  <label>Cidade *<input name="cidade" required></label>
+  <label>Estado (UF) *<select name="uf" required><option value="">UF</option></select></label>
+  <label>Modalidades *<input name="mod" required></label>
+  <label>Período de utilização *<input name="per" required></label>
+  <label>Seu interesse *<textarea name="msg" rows="3" required></textarea></label>
+  <button class="btn btn-p" type="submit">Enviar contato</button>
+ </form>
+</dialog>
+
+<script>
+// Troque pelo e-mail que receberá os contatos
+var EMAIL_CONTATO = "contato@seudominio.com.br";
+var dlg = document.getElementById("dlg"), frm = document.getElementById("frm");
+document.getElementById("ano").textContent = new Date().getFullYear();
+var ufs = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
+ufs.forEach(function (u) { frm.uf.add(new Option(u, u)); });
+document.querySelectorAll("[data-contato]").forEach(function (el) {
+  el.addEventListener("click", function (e) { e.preventDefault(); dlg.showModal(); });
+});
+frm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  var d = new FormData(frm), corpo = [];
+  d.forEach(function (v, k) { corpo.push(k + ": " + v); });
+  location.href = "mailto:" + EMAIL_CONTATO + "?subject=" + encodeURIComponent("Contato pelo site") + "&body=" + encodeURIComponent(corpo.join("\n"));
+  dlg.close();
+});
+</script>
+</body>
+</html>
