@@ -60,6 +60,8 @@ footer{border-top:1px solid var(--line);background:#fff;padding:20px 0;font-size
 @media(max-width:700px){.bar nav a.nl{display:none}}
 @media print{header,.hero,.chips,footer,.acoes,.aviso{display:none!important}dialog{box-shadow:none;max-height:none;width:100%}}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icon-192.png">
 </head>
 <body>
 <header>
@@ -148,5 +150,6 @@ window.addEventListener("hashchange", function () {
 chips(); lista();
 if (location.hash.length > 1) abrir(decodeURIComponent(location.hash.slice(1)));
 </script>
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});</script>
 </body>
 </html>

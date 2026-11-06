@@ -116,6 +116,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
 }
 @media(max-width:560px){.g4,.g3,.g2,.fgrid{grid-template-columns:1fr}}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icon-192.png">
 </head>
 <body id="topo">
 <header>
@@ -395,5 +397,6 @@ frm.addEventListener("submit", function (e) {
     .then(function () { btn.disabled = false; btn.textContent = "Enviar contato"; });
 });
 </script>
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});</script>
 </body>
 </html>

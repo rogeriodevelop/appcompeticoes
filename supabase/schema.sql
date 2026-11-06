@@ -138,6 +138,20 @@ begin
   end loop;
 end $$;
 
+-- ---------- Tempo real ----------
+-- Faz o site público atualizar sozinho quando o gestor lança um resultado. Seguro rodar de novo.
+do $$
+declare t text;
+begin
+  foreach t in array array['competicoes','esportes','grupos','equipes','atletas','jogos','eventos'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+              when undefined_object then null;
+    end;
+  end loop;
+end $$;
+
 -- ---------- Contatos do site (formulário "Falar com a equipe") ----------
 -- Qualquer visitante pode ENVIAR; só o administrador (e-mail abaixo) consegue LER.
 create table if not exists public.contatos (

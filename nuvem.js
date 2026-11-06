@@ -204,6 +204,28 @@ window.Nuvem = {
     return !!r.data.session;
   },
   async sair() { await cli.auth.signOut(); },
+  /* tempo real: avisa quando qualquer tabela muda (precisa do bloco "realtime" do schema.sql) */
+  assinar: function (fn) {
+    try { cli.channel('arena-rt').on('postgres_changes', { event: '*', schema: 'public' }, fn).subscribe(); } catch (e) {}
+  },
+  /* gestores convidados (precisa do arquivo supabase/gestores.sql) */
+  async meusGestores(email) {
+    var r = await cli.from('gestores').select('competicao_id').eq('email', String(email || '').toLowerCase());
+    return r.error ? null : r.data.map(function (x) { return x.competicao_id; });
+  },
+  async listarGestores(id) {
+    var r = await cli.from('gestores').select('email').eq('competicao_id', id).order('email');
+    if (r.error) throw r.error;
+    return r.data.map(function (x) { return x.email; });
+  },
+  async addGestor(id, email) {
+    var r = await cli.from('gestores').insert({ competicao_id: id, email: String(email).toLowerCase() });
+    if (r.error) throw r.error;
+  },
+  async delGestor(id, email) {
+    var r = await cli.from('gestores').delete().eq('competicao_id', id).eq('email', String(email).toLowerCase());
+    if (r.error) throw r.error;
+  },
   async recuperar(email) {
     var r = await cli.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     if (r.error) throw r.error;

@@ -19,12 +19,32 @@ function migrar(d) {
   });
   return d;
 }
-var USER = null, REMOTO = false, CARREGANDO = true, ERRO = null;
-function save() {
+var USER = null, REMOTO = false, CARREGANDO = true, ERRO = null, GEST = {};
+var HIST = [], REFAZER = [], BASE = null;
+function snap() { return JSON.stringify(db.competicoes); }
+function marcarBase() { BASE = snap(); HIST = []; REFAZER = []; }
+function registrar() {
+  var a = snap();
+  if (BASE !== null && a !== BASE) { HIST.push(BASE); if (HIST.length > 30) HIST.shift(); REFAZER = []; }
+  BASE = a;
+}
+function persistir() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Não foi possível guardar o cache neste navegador.'); }
   if (REMOTO && USER && window.Nuvem) Nuvem.salvar(db.competicoes);
 }
-function podeEditar(C) { return !!(REMOTO && USER && (!C || !C.owner || C.owner === USER.id)); }
+function save() { registrar(); persistir(); }
+function desfazer() {
+  if (!USER || !HIST.length) return;
+  REFAZER.push(snap()); var s = HIST.pop();
+  db.competicoes = JSON.parse(s); BASE = s; persistir(); route(); toast('Alteração desfeita.');
+}
+function refazer() {
+  if (!USER || !REFAZER.length) return;
+  HIST.push(snap()); var s = REFAZER.pop();
+  db.competicoes = JSON.parse(s); BASE = s; persistir(); route(); toast('Alteração refeita.');
+}
+function ehDono(C) { return !!(USER && C && (!C.owner || C.owner === USER.id)); }
+function podeEditar(C) { return !!(REMOTO && USER && (!C || !C.owner || C.owner === USER.id || GEST[C.id])); }
 function legado() {
   try { var l = JSON.parse(localStorage.getItem('arena.legado')); return Array.isArray(l) ? migrar({ competicoes: l }).competicoes : []; } catch (e) { return []; }
 }
@@ -378,9 +398,9 @@ function agendar(C, c, o) {
 
 /* ---------- Interface: modal ---------- */
 var dlg = $('#dlg');
-function modal(titulo, html, onSave, textoSalvar) {
+function modal(titulo, html, onSave, textoSalvar, rotuloFechar) {
   dlg.innerHTML = '<form id="mf"><h3>' + titulo + '</h3>' + html +
-    '<div class="mrow"><button type="button" class="btn btn-o" data-act="fechar">Cancelar</button>' +
+    '<div class="mrow"><button type="button" class="btn btn-o" data-act="fechar">' + (rotuloFechar || 'Cancelar') + '</button>' +
     '<button class="btn btn-p">' + (textoSalvar || 'Salvar') + '</button></div></form>';
   $('#mf').onsubmit = function (e) {
     e.preventDefault();
@@ -430,6 +450,8 @@ function route() {
   $('#btnPublico').textContent = db.publico ? 'Sair do modo público' : 'Modo público';
   $('#btnConta').textContent = USER ? 'Sair' : 'Entrar';
   $('#usuario').textContent = USER ? USER.email : '';
+  var bd = $('#btnDesfazer'), br = $('#btnRefazer');
+  if (bd) { bd.style.display = USER && HIST.length ? '' : 'none'; br.style.display = USER && REFAZER.length ? '' : 'none'; }
   if (CARREGANDO) { app.innerHTML = '<div class="skel"></div><div class="skel" style="margin-top:16px"></div>'; return; }
   if (C && E) { CUR = { comp: C, esp: E }; telaComp(E, h[3] || 'classificacao'); }
   else if (C) telaCompeticao(C);
@@ -476,6 +498,26 @@ function telaHome() {
   var imp = $('#imp'); if (imp) imp.onchange = importar;
 }
 
+function destaques(C) {
+  var todos = [];
+  C.esportes.forEach(function (e) { e.jogos.forEach(function (j, i) { if (!j.bye && j.casa && j.fora) todos.push({ e: e, j: j, i: i }); }); });
+  var prox = todos.filter(function (x) { return x.j.status !== 'fin'; })
+    .sort(function (a, b) { return (a.j.data || '9').localeCompare(b.j.data || '9') || a.i - b.i; }).slice(0, 6);
+  var rec = todos.filter(function (x) { return x.j.status === 'fin'; })
+    .sort(function (a, b) { return (b.j.data || '').localeCompare(a.j.data || '') || b.i - a.i; }).slice(0, 6);
+  if (!prox.length && !rec.length) return '';
+  function lista(arr, vazio) {
+    return arr.length ? arr.map(function (x) {
+      var j = x.j, fin = j.status === 'fin';
+      return '<a class="dest" href="#/c/' + C.id + '/' + x.e.id + '/jogos"><span class="dd">' + icone(x.e.modalidade) + ' ' + esc(x.e.modalidade) +
+        (j.data ? ' · ' + esc(fmtData(j.data)) : '') + (j.local ? ' · ' + esc(j.local) : '') + '</span>' +
+        '<span class="dj"><b>' + nomeEq(x.e, j.casa) + '</b> <span class="pl2">' + (fin ? j.gc + ' x ' + j.gf : 'x') + '</span> <b>' + nomeEq(x.e, j.fora) + '</b></span></a>';
+    }).join('') : '<p class="mut">' + vazio + '</p>';
+  }
+  return '<div class="duas"><div><h2>Próximos jogos</h2>' + lista(prox, 'Nenhum jogo pendente.') + '</div>' +
+    '<div><h2>Últimos resultados</h2>' + lista(rec, 'Nenhum jogo encerrado ainda.') + '</div></div>';
+}
+
 function telaCompeticao(C) {
   var nQ = 0, nA = 0, nF = 0, nJ = 0;
   C.esportes.forEach(function (e) { nQ += e.equipes.length; nA += e.atletas.length; var k = contagem(e); nF += k.fin; nJ += k.tot; });
@@ -491,9 +533,10 @@ function telaCompeticao(C) {
   app.innerHTML = '<a class="crumb" href="#/">← Competições</a>' +
     '<div class="phead"><div class="ptitle"><span class="ico">🏆</span><div><h1>' + esc(C.nome) + '</h1><p class="mut">' + esc(C.local || 'Competição esportiva') + '</p></div></div>' +
     '<div class="row"><span class="row edit"><button class="btn btn-p" data-act="novoEsporte">＋ Novo esporte</button>' +
-    '<button class="btn btn-o" data-act="editComp">Editar</button><button class="btn btn-d" data-act="delComp">Excluir</button></span>' + acoesPagina() + '</div></div>' +
+    '<button class="btn btn-o" data-act="editComp">Editar</button>' +
+    (ehDono(C) ? '<button class="btn btn-o" data-act="gestores">👥 Gestores</button><button class="btn btn-d" data-act="delComp">Excluir</button>' : '') + '</span>' + acoesPagina() + '</div></div>' +
     '<div class="stats">' + statBox(C.esportes.length, 'Esportes') + statBox(nQ, 'Equipes') + statBox(nA, 'Atletas') + statBox(nF + '/' + nJ, 'Jogos encerrados') + '</div>' +
-    '<h2>Esportes</h2>' + (cards ? '<div class="grid">' + cards + '</div>'
+    destaques(C) + '<h2>Esportes</h2>' + (cards ? '<div class="grid">' + cards + '</div>'
       : '<div class="empty"><b>Nenhum esporte cadastrado</b>Use “Novo esporte” para incluir futsal, vôlei, basquete etc.</div>') +
     '<h2>Regulamento</h2>' + blocoRegulamento(C);
 }
@@ -829,6 +872,65 @@ function importar(e) {
   r.readAsText(f);
 }
 
+var CARTAZ = null;
+function copiarLink(url) {
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast('Link copiado.'); }, function () { prompt('Copie o link:', url); });
+}
+function abrirCompartilhar(C, c) {
+  var url = location.href, svg = '';
+  try { var q = window.qrcode(0, 'M'); q.addData(url); q.make(); svg = q.createSvgTag(5, 2); } catch (x) {}
+  CARTAZ = { nome: C ? (C.nome + (c ? ' · ' + c.modalidade : '')) : 'Arena Competições', url: url, svg: svg };
+  modal('Compartilhar', '<p class="mut">Qualquer pessoa com este link vê jogos, resultados, tabelas e chaveamentos, sem precisar de login.</p>' +
+    (svg ? '<div class="qr">' + svg + '</div>' : '') +
+    '<label>Link<input id="lnk" readonly value="' + esc(url) + '" onfocus="this.select()"></label>' +
+    (svg ? '<div class="row"><button type="button" class="btn btn-o sm" data-act="cartaz">🖨️ Imprimir cartaz com QR code</button></div>' : ''),
+    function () { copiarLink(url); return false; }, 'Copiar link', 'Fechar');
+}
+function imprimirCartaz() {
+  if (!CARTAZ) return;
+  var w = window.open('', '_blank');
+  if (!w) { toast('Libere os pop-ups para imprimir o cartaz.'); return; }
+  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Cartaz</title><style>' +
+    'body{font-family:Arial,sans-serif;text-align:center;padding:40px;color:#0f1b33}h1{font-size:44px;margin:0 0 8px}p{font-size:22px;color:#475569}' +
+    'svg{width:420px;height:420px;margin:24px auto;display:block}.u{font-size:16px;word-break:break-all}</style></head><body><h1>' + esc(CARTAZ.nome) + '</h1>' +
+    '<p>Acompanhe jogos, resultados e classificação</p>' + CARTAZ.svg + '<p>Aponte a câmera do celular para o QR code</p><p class="u">' + esc(CARTAZ.url) + '</p></body></html>');
+  w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 300);
+}
+
+/* ---------- Gestores convidados ---------- */
+function msgGest(e) {
+  var m = (e && e.message) || String(e);
+  if (/relation|does not exist|schema cache|gestores/i.test(m) && !/duplicate/i.test(m)) return 'Recurso indisponível: rode o arquivo supabase/gestores.sql no Supabase.';
+  if (/duplicate/i.test(m)) return 'Este e-mail já é gestor.';
+  return msgAuth(e);
+}
+function carregarGestores(C) {
+  Nuvem.listarGestores(C.id).then(function (l) {
+    var box = $('#gestLista'); if (!box) return;
+    box.innerHTML = l.length ? l.map(function (em) {
+      return '<div class="row between ev"><span>' + esc(em) + '</span><button type="button" class="btn btn-d sm" data-act="delGestor" data-email="' + esc(em) + '">Remover</button></div>';
+    }).join('') : 'Nenhum gestor convidado.';
+  }).catch(function (er) { var box = $('#gestLista'); if (box) box.textContent = msgGest(er); });
+}
+function abrirGestores(C) {
+  modal('Gestores da competição',
+    '<p class="mut">Gestores convidados lançam resultados e editam esta competição, mas não podem excluí-la nem convidar outras pessoas. Eles entram com uma conta que use o mesmo e-mail.</p>' +
+    '<div id="gestLista" class="mut">Carregando…</div><label>E-mail do novo gestor<input name="email" type="email" required></label>',
+    function (fd) {
+      Nuvem.addGestor(C.id, fd.email.trim()).then(function () { toast('Gestor adicionado.'); $('#mf').reset(); carregarGestores(C); })
+        .catch(function (er) { toast(msgGest(er)); });
+      return false;
+    }, 'Adicionar', 'Fechar');
+  carregarGestores(C);
+}
+
+document.addEventListener('keydown', function (e) {
+  if (!(e.ctrlKey || e.metaKey) || dlg.open || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  var k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); desfazer(); }
+  else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); refazer(); }
+});
+
 document.addEventListener('click', function (e) {
   var el = e.target.closest('[data-act]'); if (!el) return;
   var act = el.dataset.act, id = el.dataset.id;
@@ -839,9 +941,12 @@ document.addEventListener('click', function (e) {
   if (act === 'fechar') { S = null; dlg.close(); }
   else if (act === 'publico') { db.publico = !db.publico; refresh(); }
   else if (act === 'filtro') { FJ = el.dataset.v; route(); }
-  else if (act === 'compartilhar') {
-    var url = location.href;
-    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast('Link copiado.'); }, function () { prompt('Copie o link:', url); });
+  else if (act === 'compartilhar') { abrirCompartilhar(C, c); }
+  else if (act === 'cartaz') { imprimirCartaz(); }
+  else if (act === 'desfazer') desfazer();
+  else if (act === 'refazer') refazer();
+  else if (act === 'delGestor') {
+    Nuvem.delGestor(C.id, el.dataset.email).then(function () { toast('Gestor removido.'); carregarGestores(C); }).catch(function (er) { toast(msgGest(er)); });
   }
   else if (act === 'imprimir') { window.print(); }
   else if (act === 'recuperar') {
@@ -890,6 +995,7 @@ document.addEventListener('click', function (e) {
     a.download = 'arena-competicoes.json'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
   else if (!C) return;
+  else if (act === 'gestores') { if (ehDono(C)) abrirGestores(C); }
   else if (act === 'editRegulamento') {
     modal('Regulamento da competição',
       '<label>Texto do regulamento<textarea name="reg" rows="14" maxlength="20000" placeholder="Datas, formato de disputa, critérios de desempate, premiação, disciplina…">' + esc(C.regulamento) + '</textarea></label>' +
@@ -1058,12 +1164,15 @@ document.addEventListener('change', function (e) {
   };
   r.readAsArrayBuffer(e.target.files[0]);
 });
-setInterval(function () {
+function recarregar() {
   if (!REMOTO || USER || document.hidden || dlg.open) return;
   Nuvem.carregar().then(function (comps) {
     if (JSON.stringify(comps) !== JSON.stringify(db.competicoes)) { db.competicoes = comps; route(); }
   }).catch(function () {});
-}, 30000);
+}
+var tmrRT = null;
+function aoMudarNuvem() { clearTimeout(tmrRT); tmrRT = setTimeout(recarregar, 1200); }
+setInterval(recarregar, 30000);
 
 (function iniciar() {
   try {
@@ -1081,13 +1190,17 @@ setInterval(function () {
   route();
   Nuvem.iniciar(function (u, ev) {
     var mudou = (u && u.id) !== (USER && USER.id);
-    USER = u;
+    USER = u; GEST = {};
+    if (u && Nuvem.meusGestores) {
+      Nuvem.meusGestores(u.email).then(function (ids) { (ids || []).forEach(function (x) { GEST[x] = 1; }); route(); }).catch(function () {});
+    }
     if (!CARREGANDO && mudou) route();
     if (ev === 'PASSWORD_RECOVERY') abrirNovaSenha();
   })
     .then(function () { return Nuvem.carregar(); })
     .then(function (comps) {
-      db.competicoes = comps; REMOTO = true; CARREGANDO = false;
+      db.competicoes = comps; marcarBase(); REMOTO = true; CARREGANDO = false;
+      if (Nuvem.assinar) Nuvem.assinar(aoMudarNuvem);
       try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {}
       route();
     })
