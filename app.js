@@ -172,7 +172,7 @@ function vencedor(j) {
   if (j.pc != null && j.pf != null && j.pc !== j.pf) return j.pc > j.pf ? j.casa : j.fora;
   return null;
 }
-function zerar(j) { j.gc = j.gf = j.pc = j.pf = null; j.status = 'ag'; j.eventos = []; j.bye = false; }
+function zerar(j) { j.sets = null; j.gc = j.gf = j.pc = j.pf = null; j.status = 'ag'; j.eventos = []; j.bye = false; }
 function perdedor(j) {
   var w = vencedor(j);
   if (!w || j.bye) return null;
@@ -242,6 +242,138 @@ function gerarFinal(c) {
   c.mataGerado = true;
   propagar(c);
   return null;
+}
+
+
+/* ---------- Completar jogos sem perder resultados ---------- */
+function podeCompletar(c) { return c.formato === 'pontos' || (c.formato === 'grupos' && !c.mataGerado); }
+function completarLiga(c, ids, fase, turnos) {
+  var tem = {}, falta = [], rod = 0;
+  c.jogos.forEach(function (j) {
+    if (j.ko || j.fase !== fase) return;
+    if (j.casa && j.fora) tem[j.casa + '|' + j.fora] = 1;
+    if (j.rodada > rod) rod = j.rodada;
+  });
+  for (var a = 0; a < ids.length; a++) {
+    for (var b = a + 1; b < ids.length; b++) {
+      var x = ids[a], y = ids[b];
+      if (turnos === 2) { if (!tem[x + '|' + y]) falta.push([x, y]); if (!tem[y + '|' + x]) falta.push([y, x]); }
+      else if (!tem[x + '|' + y] && !tem[y + '|' + x]) falta.push([x, y]);
+    }
+  }
+  while (falta.length) {
+    rod++;
+    var usados = {}, resto = [];
+    falta.forEach(function (p) {
+      if (usados[p[0]] || usados[p[1]]) resto.push(p);
+      else { usados[p[0]] = usados[p[1]] = 1; c.jogos.push(novoJogo(fase, rod, p[0], p[1], {})); }
+    });
+    falta = resto;
+  }
+}
+function completarJogos(c) {
+  if (c.formato === 'pontos') { completarLiga(c, c.equipes.map(function (e) { return e.id; }), 'Pontos corridos', c.turnos); return; }
+  var noGrupo = {};
+  c.grupos.forEach(function (g) { g.equipes.forEach(function (id) { noGrupo[id] = 1; }); });
+  c.equipes.filter(function (e) { return !noGrupo[e.id]; }).forEach(function (e) {
+    var menor = c.grupos.slice().sort(function (a, b) { return a.equipes.length - b.equipes.length; })[0];
+    menor.equipes.push(e.id);
+  });
+  c.grupos.forEach(function (g) { completarLiga(c, g.equipes, g.nome, c.turnos); });
+}
+
+/* ---------- Esportes com sets ---------- */
+function usaSets(c) { return /v[ôo]lei|futev|t[êe]nis|padel|badminton|squash/i.test((c && c.modalidade) || ''); }
+
+/* ---------- Importação por planilha (CSV) ---------- */
+function splitLinha(l, sep) {
+  var out = [], cur = '', asp = false;
+  for (var i = 0; i < l.length; i++) {
+    var ch = l.charAt(i);
+    if (asp) { if (ch === '"') { if (l.charAt(i + 1) === '"') { cur += '"'; i++; } else asp = false; } else cur += ch; }
+    else if (ch === '"') asp = true;
+    else if (ch === sep) { out.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+function lerCsv(txt) {
+  var linhas = String(txt || '').replace(/^\uFEFF/, '').split(/\r?\n/).filter(function (l) { return l.trim(); });
+  if (!linhas.length) return [];
+  var sep = [';', '\t', ','].reduce(function (m, x) { return linhas[0].split(x).length > linhas[0].split(m).length ? x : m; }, ';');
+  var rows = linhas.map(function (l) { return splitLinha(l, sep); });
+  var p = String(rows[0][0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (p === 'equipe' || p === 'time' || p === 'participante') rows.shift();
+  return rows;
+}
+function importarPlanilha(c, linhas) {
+  var r = { eq: 0, at: 0, ign: 0 };
+  linhas.forEach(function (l) {
+    var nome = (l[0] || '').trim();
+    if (!nome) { r.ign++; return; }
+    var q = c.equipes.filter(function (x) { return x.nome.toLowerCase() === nome.toLowerCase(); })[0];
+    if (!q) { q = { id: uid(), nome: nome, sigla: '', tecnico: '' }; c.equipes.push(q); r.eq++; }
+    if (!q.sigla && l[1]) q.sigla = l[1].trim().toUpperCase().slice(0, 4);
+    if (!q.tecnico && l[2]) q.tecnico = l[2].trim();
+    var at = (l[3] || '').trim();
+    if (!at) return;
+    if (c.atletas.some(function (x) { return x.equipeId === q.id && x.nome.toLowerCase() === at.toLowerCase(); })) { r.ign++; return; }
+    var n = l[4] ? num(l[4]) : null;
+    if (n != null && c.atletas.some(function (x) { return x.equipeId === q.id && x.numero === n; })) n = null;
+    c.atletas.push({ id: uid(), equipeId: q.id, nome: at, numero: n, posicao: (l[5] || '').trim() }); r.at++;
+  });
+  return r;
+}
+
+/* ---------- Agenda automática ---------- */
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function isoLocal(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+function minutos(hhmm) { var p = String(hhmm || '').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
+function agendar(C, c, o) {
+  var passo = o.duracao + o.intervalo, ini = minutos(o.hora), fim = minutos(o.fim), slots = [], idxDe = {};
+  var d0 = new Date(o.data + 'T00:00');
+  for (var dia = 0; dia < 120; dia++) {
+    var d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + dia), w = d.getDay();
+    if (o.dias === 'fds' && w !== 0 && w !== 6) continue;
+    for (var m = ini; m + o.duracao <= fim; m += passo) {
+      var sl = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, m);
+      idxDe[isoLocal(sl)] = slots.length; slots.push(sl);
+    }
+  }
+  var alvo = c.jogos.filter(function (j) { return !j.bye && j.status !== 'fin' && (o.reagendar || !j.data); });
+  var ocupado = {}, ocupa = {};
+  C.esportes.forEach(function (e) {
+    e.jogos.forEach(function (j) {
+      if (e === c && alvo.indexOf(j) >= 0) return;
+      if (j.data && j.local) ocupado[j.data + '|' + j.local] = 1;
+      if (e === c && j.data && idxDe[j.data] != null) {
+        [j.casa, j.fora].forEach(function (t) { if (t) { ocupa[t] = ocupa[t] || {}; ocupa[t][idxDe[j.data]] = 1; } });
+      }
+    });
+  });
+  function conflito(j, i) {
+    return [j.casa, j.fora].some(function (t) {
+      var b = t && ocupa[t]; if (!b) return false;
+      return b[i] || (o.evitar && (b[i - 1] || b[i + 1]));
+    });
+  }
+  var ultimoLiga = -1, koMax = {}, feitos = 0, primeiro = null, ultimo = null;
+  alvo.forEach(function (j) {
+    var de = 0;
+    if (j.ko) de = Math.max(ultimoLiga + 1, koMax[j.rodada - 1] != null ? koMax[j.rodada - 1] + 1 : 0);
+    for (var i = de; i < slots.length; i++) {
+      var iso = isoLocal(slots[i]);
+      var loc = o.locais.filter(function (l) { return !ocupado[iso + '|' + l]; })[0];
+      if (!loc || conflito(j, i)) continue;
+      j.data = iso; j.local = loc; ocupado[iso + '|' + loc] = 1;
+      [j.casa, j.fora].forEach(function (t) { if (t) { ocupa[t] = ocupa[t] || {}; ocupa[t][i] = 1; } });
+      if (j.ko) koMax[j.rodada] = Math.max(koMax[j.rodada] != null ? koMax[j.rodada] : -1, i); else ultimoLiga = Math.max(ultimoLiga, i);
+      feitos++; if (!primeiro || iso < primeiro) primeiro = iso; if (!ultimo || iso > ultimo) ultimo = iso;
+      return;
+    }
+  });
+  return { total: alvo.length, feitos: feitos, primeiro: primeiro, ultimo: ultimo };
 }
 
 /* ---------- Interface: modal ---------- */
@@ -377,9 +509,13 @@ function telaComp(c, aba) {
     banner = '<div class="banner edit"><b>Passo seguinte:</b> cadastre as equipes e gere os jogos. Se entrarem novas equipes depois, é possível regerar o ' + rotuloGeracao(c) + '.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerar">Gerar jogos</button></div></div>';
   } else if (fora.length) {
-    banner = '<div class="banner edit"><b>' + fora.length + (fora.length === 1 ? ' equipe nova' : ' equipes novas') + ' fora do ' + rotuloGeracao(c) + ':</b> ' +
-      fora.map(function (e) { return esc(e.nome); }).join(', ') + '. Regere para incluí-' + (fora.length === 1 ? 'la' : 'las') + '. Os resultados já lançados serão apagados.' +
-      '<div style="margin-top:10px"><button class="btn btn-p" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button></div></div>';
+    var nomesFora = fora.map(function (e) { return esc(e.nome); }).join(', ');
+    banner = '<div class="banner edit"><b>' + fora.length + (fora.length === 1 ? ' equipe nova' : ' equipes novas') + ' fora do ' + rotuloGeracao(c) + ':</b> ' + nomesFora + '.' +
+      (podeCompletar(c)
+        ? ' Inclua para criar só os jogos que faltam, mantendo os resultados já lançados.' +
+          '<div class="row" style="margin-top:10px"><button class="btn btn-p" data-act="completar">Incluir equipes e manter resultados</button><button class="btn btn-o" data-act="regerar">Regerar do zero</button></div>'
+        : ' Regere para incluí-' + (fora.length === 1 ? 'la' : 'las') + '. Os resultados já lançados serão apagados.' +
+          '<div style="margin-top:10px"><button class="btn btn-p" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button></div>') + '</div>';
   } else if (c.formato === 'grupos' && !c.mataGerado && gruposEncerrados(c)) {
     banner = '<div class="banner ok edit"><b>Fase de grupos encerrada.</b> Gere o mata-mata com os ' + c.classificados + ' primeiros de cada grupo.' +
       '<div style="margin-top:10px"><button class="btn btn-p" data-act="gerarFinal">Gerar mata-mata</button></div></div>';
@@ -401,7 +537,8 @@ function linhaTabela(c, t, i, qual) {
 }
 function htmlTabela(c, fase, ids, qual) {
   var linhas = tabela(c, ids, fase).map(function (t, i) { return linhaTabela(c, t, i, qual); }).join('');
-  return '<h2>' + esc(fase) + '</h2><div class="tw"><table><tr><th>#</th><th class="l">Equipe</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr>' + linhas + '</table></div>';
+  return '<h2>' + esc(fase) + '</h2><div class="tw"><table><tr><th>#</th><th class="l">Equipe</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th>' +
+    (usaSets(c) ? '<th>Sets +</th><th>Sets −</th><th>Saldo</th>' : '<th>GP</th><th>GC</th><th>SG</th>') + '</tr>' + linhas + '</table></div>';
 }
 function abaClass(c) {
   if (!c.gerado) return '<div class="empty">Gere os jogos para ver a ' + (c.formato === 'mata' ? 'chave.' : 'classificação.') + '</div>';
@@ -441,7 +578,8 @@ function abaJogos(c) {
   var filtros = [['todos', 'Todos', todos.length], ['ag', 'A realizar', nAg], ['fin', 'Encerrados', todos.length - nAg]].map(function (f) {
     return '<button class="chip ' + (FJ === f[0] ? 'on' : '') + '" data-act="filtro" data-v="' + f[0] + '">' + f[1] + ' (' + f[2] + ')</button>';
   }).join('');
-  var h = '<div class="filtros">' + filtros + '</div>', ordem = [];
+  var h = '<div class="row between" style="margin-bottom:6px"><div class="filtros" style="margin:0">' + filtros + '</div>' +
+    '<button class="btn btn-p sm edit" data-act="agendar">📅 Agendar jogos</button></div>', ordem = [];
   c.jogos.forEach(function (j) {
     var k = j.fase + '|' + j.rodada;
     if (ordem.indexOf(k) < 0) ordem.push(k);
@@ -458,7 +596,8 @@ function abaJogos(c) {
         (fin ? '<span class="tag ok">Encerrado</span>' : '<span class="tag">A realizar</span>') +
         (j.data ? '<br>' + esc(fmtData(j.data)) : '') + (j.local ? '<br>' + esc(j.local) : '') + '</div>' +
         '<div class="c">' + nomeLado(c, j.casa, j.rc) + '</div><div class="pl">' + (fin ? j.gc + ' x ' + j.gf : 'x') +
-        (fin && j.pc != null && j.gc === j.gf ? '<div class="sub">pên. ' + j.pc + ' x ' + j.pf + '</div>' : '') + '</div>' +
+        (fin && j.pc != null && j.gc === j.gf ? '<div class="sub">pên. ' + j.pc + ' x ' + j.pf + '</div>' : '') +
+        (fin && j.sets && j.sets.length ? '<div class="sub">' + j.sets.map(function (p) { return p[0] + '-' + p[1]; }).join(' · ') + '</div>' : '') + '</div>' +
         '<div class="f">' + nomeLado(c, j.fora, j.rf) + '</div><div class="ac">' +
         (j.casa && j.fora ? '<button class="btn btn-o sm edit" data-act="sumula" data-id="' + j.id + '">Súmula</button>' : '') + '</div></div>';
     });
@@ -476,7 +615,7 @@ function abaEquipes(c) {
       (!c.gerado || equipesFora(c).indexOf(e) >= 0 ? '<button class="btn btn-d sm" data-act="delEquipe" data-id="' + e.id + '">Excluir</button>' : '') + '</div></div>';
   }).join('');
   return '<div class="row between"><h2 style="margin:0">Equipes (' + c.equipes.length + ')</h2>' +
-    '<span class="row edit">' + (c.gerado ? '<button class="btn btn-o" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button>' : '') +
+    '<span class="row edit"><button class="btn btn-o" data-act="importar">📥 Importar planilha</button>' + (c.gerado ? '<button class="btn btn-o" data-act="regerar">Regerar ' + rotuloGeracao(c) + '</button>' : '') +
     '<button class="btn btn-p" data-act="novaEquipe">Nova equipe</button></span></div>' +
     (c.gerado ? '<p class="mut edit">Os jogos já foram gerados. Equipes novas só entram no ' + rotuloGeracao(c) + ' depois de regerá-lo; equipes que já jogam não podem ser excluídas.</p>' : '') +
     (lista ? '<div class="grid" style="margin-top:14px">' + lista + '</div>' : '<div class="empty" style="margin-top:14px">Nenhuma equipe cadastrada.</div>');
@@ -609,8 +748,9 @@ function desenharSumula() {
   var html = '<p><b>' + nomeEq(c, d.casa) + '</b> x <b>' + nomeEq(c, d.fora) + '</b> <span class="tag">' + esc(d.fase) + '</span></p>' +
     '<div class="f2"><label>Data e hora<input type="datetime-local" name="data" value="' + esc(d.data) + '"></label>' +
     '<label>Local<input name="local" value="' + esc(d.local) + '"></label></div>' +
-    '<div class="f2"><label>Gols – ' + esc(nomeSimples(c, d.casa)) + '<input type="number" min="0" name="gc" value="' + (d.gc == null ? '' : d.gc) + '"></label>' +
-    '<label>Gols – ' + esc(nomeSimples(c, d.fora)) + '<input type="number" min="0" name="gf" value="' + (d.gf == null ? '' : d.gf) + '"></label></div>' +
+    (usaSets(c) ? htmlSets(c, d) : '') +
+    '<div class="f2"><label>' + (usaSets(c) ? 'Sets – ' : 'Gols – ') + esc(nomeSimples(c, d.casa)) + '<input type="number" min="0" name="gc" value="' + (d.gc == null ? '' : d.gc) + '"></label>' +
+    '<label>' + (usaSets(c) ? 'Sets – ' : 'Gols – ') + esc(nomeSimples(c, d.fora)) + '<input type="number" min="0" name="gf" value="' + (d.gf == null ? '' : d.gf) + '"></label></div>' +
     (d.ko ? '<div class="f2"><label>Pênaltis – casa (se empate)<input type="number" min="0" name="pc" value="' + (d.pc == null ? '' : d.pc) + '"></label>' +
       '<label>Pênaltis – fora<input type="number" min="0" name="pf" value="' + (d.pf == null ? '' : d.pf) + '"></label></div>' : '') +
     '<label class="chk"><input type="checkbox" name="fin"' + (d.status === 'fin' ? ' checked' : '') + '> Partida encerrada (conta na classificação)</label>' +
@@ -623,10 +763,27 @@ function desenharSumula() {
     '<p class="mut">Gols lançados atualizam o placar automaticamente; o placar também pode ser digitado.</p>';
   modal('Súmula', html, salvarSumula);
 }
+function htmlSets(c, d) {
+  var ps = d.sets || [], h = '<h3>Pontos de cada set</h3><p class="mut">Preencha os sets disputados; o placar em sets é calculado sozinho.</p>';
+  for (var i = 0; i < 5; i++) {
+    h += '<div class="f2"><label>Set ' + (i + 1) + ' – ' + esc(nomeSimples(c, d.casa)) + '<input type="number" min="0" name="sc' + i + '" value="' + (ps[i] ? ps[i][0] : '') + '"></label>' +
+      '<label>Set ' + (i + 1) + ' – ' + esc(nomeSimples(c, d.fora)) + '<input type="number" min="0" name="sf' + i + '" value="' + (ps[i] ? ps[i][1] : '') + '"></label></div>';
+  }
+  return h;
+}
 function lerSumula() {
   var f = $('#mf'), d = S.d;
   d.data = f.data.value; d.local = f.local.value.trim();
   d.gc = num(f.gc.value); d.gf = num(f.gf.value);
+  if (usaSets(S.c)) {
+    var ps = [];
+    for (var i = 0; i < 5; i++) { if (f['sc' + i].value !== '' && f['sf' + i].value !== '') ps.push([num(f['sc' + i].value), num(f['sf' + i].value)]); }
+    d.sets = ps;
+    if (ps.length) {
+      d.gc = ps.filter(function (p) { return p[0] > p[1]; }).length;
+      d.gf = ps.filter(function (p) { return p[1] > p[0]; }).length;
+    }
+  }
   if (d.ko) { d.pc = num(f.pc.value); d.pf = num(f.pf.value); }
   d.status = f.fin.checked ? 'fin' : 'ag';
 }
@@ -648,7 +805,7 @@ function salvarSumula() {
     }
   }
   var j = c.jogos.filter(function (x) { return x.id === d.id; })[0];
-  ['data', 'local', 'gc', 'gf', 'pc', 'pf', 'status', 'eventos'].forEach(function (k) { j[k] = d[k]; });
+  ['data', 'local', 'gc', 'gf', 'pc', 'pf', 'status', 'eventos', 'sets'].forEach(function (k) { j[k] = d[k]; });
   if (j.ko) propagar(c);
   S = null; refresh();
 }
@@ -775,6 +932,50 @@ document.addEventListener('click', function (e) {
       var m3 = gerarJogos(c); refresh(); toast(m3 || (rotuloGeracao(c) === 'jogos' ? 'Jogos regerados.' : 'Chaveamento regerado.'));
     }
   }
+  else if (act === 'completar') {
+    completarJogos(c); refresh(); toast('Equipes incluídas; resultados mantidos.');
+  }
+  else if (act === 'importar') {
+    modal('Importar equipes e atletas',
+      '<p class="mut">Uma linha por atleta, com as colunas: <b>equipe; sigla; técnico; atleta; número; posição</b>. Só a equipe é obrigatória. Aceita CSV (;  , ou tabulação) e também células coladas direto do Excel.</p>' +
+      '<div class="row"><button type="button" class="btn btn-o sm" data-act="modeloCsv">Baixar modelo</button></div>' +
+      '<label>Arquivo CSV<input type="file" id="csvArq" accept=".csv,.txt,text/csv,text/plain"></label>' +
+      '<label>Ou cole aqui<textarea id="csvTxt" name="csv" rows="9" placeholder="Águias;AGU;Carlos;João Silva;10;Pivô"></textarea></label>',
+      function (fd) {
+        var linhas = lerCsv(fd.csv);
+        if (!linhas.length) { toast('Nenhuma linha para importar.'); return false; }
+        var r = importarPlanilha(c, linhas); refresh();
+        toast(r.eq + ' equipe(s) e ' + r.at + ' atleta(s) importados' + (r.ign ? '; ' + r.ign + ' linha(s) ignorada(s) (repetidas ou sem equipe).' : '.'));
+      }, 'Importar');
+  }
+  else if (act === 'modeloCsv') {
+    var csv = '\uFEFFequipe;sigla;tecnico;atleta;numero;posicao\r\nÁguias;AGU;Carlos Lima;João Silva;10;Pivô\r\nÁguias;AGU;Carlos Lima;Pedro Alves;7;Ala\r\nTubarões;TUB;Marta Souza;Rui Costa;9;Fixo\r\n';
+    var ab = document.createElement('a'); ab.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    ab.download = 'modelo-equipes-atletas.csv'; ab.click(); setTimeout(function () { URL.revokeObjectURL(ab.href); }, 1000);
+  }
+  else if (act === 'agendar') {
+    var hoje = isoLocal(new Date()).slice(0, 10), comData = c.jogos.some(function (j) { return !j.bye && j.status !== 'fin' && j.data; });
+    modal('Agendar jogos',
+      '<p class="mut">Distribui os jogos nos horários e locais informados, sem repetir equipe no mesmo horário e sem ocupar o mesmo local de outro esporte desta competição. No mata-mata, cada fase começa depois da anterior.</p>' +
+      '<div class="f2"><label>Primeiro dia<input type="date" name="data" required value="' + hoje + '"></label>' +
+      '<label>Dias de jogo<select name="dias">' + opts([['todos', 'Todos os dias'], ['fds', 'Só sábado e domingo']], 'todos') + '</select></label></div>' +
+      '<div class="f2"><label>Primeiro jogo às<input type="time" name="hora" required value="08:00"></label><label>Último jogo termina até<input type="time" name="fim" required value="18:00"></label></div>' +
+      '<div class="f2"><label>Duração do jogo (min)<input type="number" name="duracao" min="5" max="300" required value="40"></label>' +
+      '<label>Intervalo entre jogos (min)<input type="number" name="intervalo" min="0" max="120" required value="10"></label></div>' +
+      '<label>Locais (um por linha)<textarea name="locais" rows="3">Quadra 1</textarea></label>' +
+      '<label class="chk"><input type="checkbox" name="evitar" checked> Evitar a mesma equipe em horários seguidos</label>' +
+      (comData ? '<label class="chk"><input type="checkbox" name="reagendar"> Reagendar também os jogos que já têm data</label>' : ''),
+      function (fd) {
+        var o = { data: fd.data, dias: fd.dias, hora: fd.hora, fim: fd.fim, duracao: parseInt(fd.duracao, 10) || 40, intervalo: parseInt(fd.intervalo, 10) || 0,
+          locais: String(fd.locais || '').split(/\r?\n/).map(function (x) { return x.trim(); }).filter(Boolean), evitar: !!fd.evitar, reagendar: !!fd.reagendar };
+        if (!o.locais.length) o.locais = ['Quadra 1'];
+        if (minutos(o.fim) < minutos(o.hora) + o.duracao) { toast('O horário final precisa comportar pelo menos um jogo.'); return false; }
+        var r = agendar(CUR.comp, c, o);
+        if (!r.total) { toast('Não há jogos a agendar.'); return false; }
+        refresh();
+        toast(r.feitos + ' de ' + r.total + ' jogos agendados' + (r.feitos ? ' (' + fmtData(r.primeiro) + ' a ' + fmtData(r.ultimo) + ')' : '') + (r.feitos < r.total ? '. Faltaram horários: amplie dias, horário ou locais.' : '.'));
+      }, 'Agendar');
+  }
   else if (act === 'reiniciar') {
     if (confirm('Apagar todos os jogos e resultados e liberar as equipes para edição?')) {
       c.jogos = []; c.grupos = []; c.gerado = false; c.mataGerado = false; refresh();
@@ -845,6 +1046,17 @@ document.addEventListener('input', function (e) {
   if (e.target.id !== 'busca') return;
   var q = e.target.value.trim().toLowerCase();
   document.querySelectorAll('#lista .card').forEach(function (c) { c.style.display = !q || c.dataset.nome.indexOf(q) >= 0 ? '' : 'none'; });
+});
+
+document.addEventListener('change', function (e) {
+  if (e.target.id !== 'csvArq' || !e.target.files[0]) return;
+  var r = new FileReader();
+  r.onload = function () {
+    var txt;
+    try { txt = new TextDecoder('utf-8', { fatal: true }).decode(r.result); } catch (x) { txt = new TextDecoder('windows-1252').decode(r.result); }
+    $('#csvTxt').value = txt;
+  };
+  r.readAsArrayBuffer(e.target.files[0]);
 });
 setInterval(function () {
   if (!REMOTO || USER || document.hidden || dlg.open) return;

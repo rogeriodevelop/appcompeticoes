@@ -101,6 +101,8 @@ alter table public.jogos add column if not exists dv_jogo  text;
 alter table public.jogos add column if not exists dv_lado  text check (dv_lado in ('casa', 'fora'));
 alter table public.jogos add column if not exists dp_jogo  text;
 alter table public.jogos add column if not exists dp_lado  text check (dp_lado in ('casa', 'fora'));
+-- Parciais dos sets (vôlei, tênis etc.), em JSON: [[25,20],[21,25]]
+alter table public.jogos add column if not exists sets     text;
 
 -- ---------- Índices das chaves estrangeiras ----------
 create index if not exists esportes_competicao_idx on public.esportes (competicao_id);

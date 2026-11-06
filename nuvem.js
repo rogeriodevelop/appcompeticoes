@@ -38,7 +38,7 @@ function paraLinhas(comps) {
         R.jogos.push({ id: j.id, esporte_id: E.id, fase: j.fase, rodada: j.rodada, idx: j.idx == null ? null : j.idx, ko: !!j.ko, bye: !!j.bye,
           casa_id: j.casa || null, fora_id: j.fora || null, gc: j.gc, gf: j.gf, pc: j.pc, pf: j.pf,
           data: nn(j.data), local: nn(j.local), status: j.status,
-          nome: nn(j.nome), rot_casa: nn(j.rc), rot_fora: nn(j.rf),
+          nome: nn(j.nome), rot_casa: nn(j.rc), rot_fora: nn(j.rf), sets: j.sets && j.sets.length ? JSON.stringify(j.sets) : null,
           dv_jogo: j.dv ? j.dv.jogo : null, dv_lado: j.dv ? j.dv.lado : null,
           dp_jogo: j.dp ? j.dp.jogo : null, dp_lado: j.dp ? j.dp.lado : null, ordem: ji });
         (j.eventos || []).forEach(function (ev, vi) {
@@ -89,6 +89,7 @@ function deLinhas(T) {
       data: j.data || '', local: j.local || '', status: j.status, eventos: [], ko: j.ko };
     if (j.ko) J.idx = j.idx;
     if (j.bye) J.bye = true;
+    if (j.sets) { try { J.sets = JSON.parse(j.sets); } catch (x) {} }
     if (j.nome) J.nome = j.nome;
     if (j.rot_casa) J.rc = j.rot_casa;
     if (j.rot_fora) J.rf = j.rot_fora;
@@ -121,10 +122,11 @@ function marcar(R) {
   });
 }
 
-var semRegulamento = false, aviso = '';
+var faltando = {}, aviso = '';
 function semColuna(tabela, linhas) {
-  if (tabela !== 'competicoes' || !semRegulamento) return linhas;
-  return linhas.map(function (r) { var c = Object.assign({}, r); delete c.regulamento; return c; });
+  var cols = Object.keys(faltando).filter(function (k) { return k.split('.')[0] === tabela; }).map(function (k) { return k.split('.')[1]; });
+  if (!cols.length) return linhas;
+  return linhas.map(function (r) { var c = Object.assign({}, r); cols.forEach(function (k) { delete c[k]; }); return c; });
 }
 
 async function sincronizar(comps) {
@@ -133,16 +135,18 @@ async function sincronizar(comps) {
     t = ORDEM[k];
     var mudou = R[t].filter(function (r) { return sincronizado[t][r.id] !== JSON.stringify(r); });
     for (i = 0; i < mudou.length; i += 500) {
-      var lote = mudou.slice(i, i + 500);
-      var r1 = await cli.from(t).upsert(semColuna(t, lote));
-      if (r1.error && t === 'competicoes' && /regulamento/i.test(r1.error.message || '')) {
-        // banco ainda sem a coluna nova: segue salvando o resto e avisa
-        semRegulamento = true;
+      var lote = mudou.slice(i, i + 500), r1, tentativas = 0;
+      do {
         r1 = await cli.from(t).upsert(semColuna(t, lote));
-      }
-      if (t === 'competicoes' && semRegulamento && lote.some(function (r) { return r.regulamento; })) {
-        aviso = 'O regulamento não foi salvo: rode o supabase/schema.sql atualizado no Supabase.';
-      }
+        // banco ainda sem uma coluna nova: segue salvando o resto e avisa
+        var m = r1.error && /'(\w+)' column of '(\w+)'/.exec(r1.error.message || '');
+        if (!m || m[2] !== t || faltando[t + '.' + m[1]]) break;
+        faltando[t + '.' + m[1]] = true; tentativas++;
+      } while (tentativas < 3);
+      Object.keys(faltando).forEach(function (kk) {
+        var p = kk.split('.');
+        if (p[0] === t && lote.some(function (r) { return r[p[1]]; })) aviso = 'Parte dos dados não foi salva: rode o supabase/schema.sql atualizado no Supabase.';
+      });
       if (r1.error) throw r1.error;
       lote.forEach(function (r) { sincronizado[t][r.id] = JSON.stringify(r); });
     }
