@@ -24,7 +24,7 @@ if (ios) mostrar(true);
 window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); evento = e; mostrar(true); });
 window.addEventListener('appinstalled', function () { evento = null; mostrar(false); });
 
-bts.forEach(function (b) {
+[].slice.call(document.querySelectorAll('[data-instalar-acao]')).forEach(function (b) {
   b.addEventListener('click', function (e) {
     e.preventDefault();
     if (evento) {
