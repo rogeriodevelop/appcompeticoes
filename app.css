@@ -201,3 +201,4 @@ i.fV{background:#16a34a}i.fE{background:#f59e0b}i.fD{background:#dc2626}
 @media(max-width:560px){.gr-l{grid-template-columns:90px 1fr 60px}}
 @media print{.gr-b,.forma i,i.fV,i.fE,i.fD{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 @media(max-width:820px){.bar{height:auto;flex-wrap:wrap;padding:8px 0}.top nav{flex-wrap:wrap;justify-content:flex-end;margin-left:auto}}
+.tag.priv{background:#fef3c7;color:#92400e}

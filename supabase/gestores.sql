@@ -51,6 +51,10 @@ create policy "dono remove" on public.gestores for delete to authenticated
 
 -- ---------- O que o gestor convidado pode gravar ----------
 -- Competição: só alterar (nome, local, regulamento). Nunca excluir.
+-- Eventos privados: o gestor convidado também precisa enxergar a competição (nas demais tabelas "gestor grava" já libera a leitura).
+drop policy if exists "gestor le" on public.competicoes;
+create policy "gestor le" on public.competicoes for select to authenticated using (public.gestor_de_comp(id));
+
 drop policy if exists "gestor edita" on public.competicoes;
 create policy "gestor edita" on public.competicoes for update to authenticated
   using (public.gestor_de_comp(id)) with check (public.gestor_de_comp(id));

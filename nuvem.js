@@ -17,7 +17,7 @@ function nn(v) { return v == null || v === '' ? null : v; }
 function paraLinhas(comps) {
   var R = vazio();
   comps.forEach(function (C, ci) {
-    R.competicoes.push({ id: C.id, nome: C.nome, local: nn(C.local), regulamento: nn(C.regulamento), ordem: ci });
+    R.competicoes.push({ id: C.id, nome: C.nome, local: nn(C.local), regulamento: nn(C.regulamento), publica: C.publica !== false, ordem: ci });
     C.esportes.forEach(function (E, ei) {
       R.esportes.push({ id: E.id, competicao_id: C.id, modalidade: E.modalidade, categoria: nn(E.categoria), sexo: E.sexo || 'Misto',
         formato: E.formato, turnos: E.turnos || 1, num_grupos: E.numGrupos || 2, classificados: E.classificados || 2,
@@ -57,7 +57,7 @@ function porOrdem(a, b) { return (a.ordem - b.ordem) || (a.id < b.id ? -1 : 1); 
 function deLinhas(T) {
   var gruposPorEsp = {};
   var comps = T.competicoes.slice().sort(porOrdem).map(function (c) {
-    return { id: c.id, owner: c.owner, nome: c.nome, local: c.local || '', regulamento: c.regulamento || '', esportes: [] };
+    return { id: c.id, owner: c.owner, nome: c.nome, local: c.local || '', regulamento: c.regulamento || '', publica: c.publica !== false, esportes: [] };
   });
   var porId = {}; comps.forEach(function (c) { porId[c.id] = c; });
   var esps = {};
@@ -145,7 +145,8 @@ async function sincronizar(comps) {
       } while (tentativas < 3);
       Object.keys(faltando).forEach(function (kk) {
         var p = kk.split('.');
-        if (p[0] === t && lote.some(function (r) { return r[p[1]]; })) aviso = 'Parte dos dados não foi salva: rode o supabase/schema.sql atualizado no Supabase.';
+        if (p[0] === t && p[1] === 'publica' && lote.some(function (r) { return r.publica === false; })) aviso = 'ATENÇÃO: o evento continua PÚBLICO. Para o modo privado funcionar, rode o supabase/schema.sql atualizado no Supabase.';
+        else if (p[0] === t && lote.some(function (r) { return r[p[1]]; })) aviso = 'Parte dos dados não foi salva: rode o supabase/schema.sql atualizado no Supabase.';
       });
       if (r1.error) throw r1.error;
       lote.forEach(function (r) { sincronizado[t][r.id] = JSON.stringify(r); });

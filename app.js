@@ -487,7 +487,7 @@ function telaHome() {
       '<div class="top-line"><span class="ico">🏆</span><div><h3>' + esc(C.nome) + '</h3><p class="mut">' + esc(C.local || 'Competição esportiva') + '</p></div></div>' +
       '<p style="font-size:1.2rem">' + (icos || '<span class="mut" style="font-size:.85rem">Nenhum esporte cadastrado</span>') + '</p>' +
       '<div class="chips" style="margin-top:10px"><span class="tag blue">' + C.esportes.length + ' esportes</span><span class="tag">' + eqs + ' equipes</span>' +
-      '<span class="tag ok">' + fin + '/' + tot + ' jogos</span></div>' + barra(tot ? Math.round(fin * 100 / tot) : 0) + '</a>';
+      '<span class="tag ok">' + fin + '/' + tot + ' jogos</span>' + tagPrivado(C) + '</div>' + barra(tot ? Math.round(fin * 100 / tot) : 0) + '</a>';
   }).join('');
   app.innerHTML = '<section class="hero"><h1>Toda a sua competição em um só lugar</h1>' +
     '<p>Cadastre esportes, equipes e atletas, gere tabelas e chaveamentos e acompanhe os resultados em tempo real.</p>' +
@@ -535,7 +535,7 @@ function telaCompeticao(C) {
       (ch ? '<p style="margin-top:10px"><span class="champion">🏆 ' + nomeEq(e, ch) + '</span></p>' : '') + '</a>';
   }).join('');
   app.innerHTML = '<a class="crumb" href="#/">← Competições</a>' +
-    '<div class="phead"><div class="ptitle"><span class="ico">🏆</span><div><h1>' + esc(C.nome) + '</h1><p class="mut">' + esc(C.local || 'Competição esportiva') + '</p></div></div>' +
+    '<div class="phead"><div class="ptitle"><span class="ico">🏆</span><div><h1>' + esc(C.nome) + '</h1><p class="mut">' + esc(C.local || 'Competição esportiva') + ' ' + tagPrivado(C) + '</p></div></div>' +
     '<div class="row"><span class="row edit"><button class="btn btn-p" data-act="novoEsporte">＋ Novo esporte</button>' +
     '<button class="btn btn-o" data-act="editComp">Editar</button>' +
     (ehDono(C) ? '<button class="btn btn-o" data-act="gestores">👥 Gestores</button><button class="btn btn-d" data-act="delComp">Excluir</button>' : '') + '</span>' + acoesPagina() + '</div></div>' +
@@ -718,9 +718,13 @@ function abaStats(c) {
 
 function formComp(C) {
   C = C || {};
+  var vis = !C.id || ehDono(C)
+    ? '<label>Visibilidade<select name="publica"><option value="1"' + (C.publica === false ? '' : ' selected') + '>Público: qualquer pessoa com o link vê</option>' +
+      '<option value="0"' + (C.publica === false ? ' selected' : '') + '>Privado: só você e os gestores convidados veem</option></select></label>' : '';
   return '<label>Nome da competição *<input name="nome" required value="' + esc(C.nome) + '"></label>' +
-    '<label>Local / cidade<input name="local" value="' + esc(C.local) + '"></label>';
+    '<label>Local / cidade<input name="local" value="' + esc(C.local) + '"></label>' + vis;
 }
+function tagPrivado(C) { return C && C.publica === false ? '<span class="tag priv" title="Só você e os gestores convidados veem este evento">🔒 Privado</span>' : ''; }
 function formEsporte(c) {
   c = c || { modalidade: 'Futsal', sexo: 'Misto', formato: 'pontos', turnos: 1, numGrupos: 2, classificados: 2 };
   var bloq = c.gerado ? ' disabled' : '';
@@ -884,7 +888,9 @@ function abrirCompartilhar(C, c) {
   var url = location.href, svg = '';
   try { var q = window.qrcode(0, 'M'); q.addData(url); q.make(); svg = q.createSvgTag(5, 2); } catch (x) {}
   CARTAZ = { nome: C ? (C.nome + (c ? ' · ' + c.modalidade : '')) : 'Arena Competições', url: url, svg: svg };
-  modal('Compartilhar', '<p class="mut">Qualquer pessoa com este link vê jogos, resultados, tabelas e chaveamentos, sem precisar de login.</p>' +
+  modal('Compartilhar', (C && C.publica === false
+    ? '<p class="banner">🔒 Este evento é <b>privado</b>: só você e os gestores convidados conseguem abrir o link. Para o público acompanhar, mude a visibilidade em “Editar”.</p>'
+    : '<p class="mut">Qualquer pessoa com este link vê jogos, resultados, tabelas e chaveamentos, sem precisar de login.</p>') +
     (svg ? '<div class="qr">' + svg + '</div>' : '') +
     '<label>Link<input id="lnk" readonly value="' + esc(url) + '" onfocus="this.select()"></label>' +
     (svg ? '<div class="row"><button type="button" class="btn btn-o sm" data-act="cartaz">🖨️ Imprimir cartaz com QR code</button></div>' : ''),
@@ -991,7 +997,7 @@ document.addEventListener('click', function (e) {
   }
   else if (act === 'novaComp') {
     modal('Nova competição', formComp(), function (fd) {
-      var n = { id: uid(), owner: USER.id, nome: fd.nome.trim(), local: (fd.local || '').trim(), esportes: [] };
+      var n = { id: uid(), owner: USER.id, nome: fd.nome.trim(), local: (fd.local || '').trim(), publica: fd.publica !== '0', esportes: [] };
       db.competicoes.push(n); save(); location.hash = '#/c/' + n.id;
     }, 'Criar');
   }
@@ -1009,7 +1015,7 @@ document.addEventListener('click', function (e) {
       function (fd) { C.regulamento = (fd.reg || '').trim(); refresh(); });
   }
   else if (act === 'editComp') {
-    modal('Editar competição', formComp(C), function (fd) { C.nome = fd.nome.trim(); C.local = (fd.local || '').trim(); refresh(); });
+    modal('Editar competição', formComp(C), function (fd) { C.nome = fd.nome.trim(); C.local = (fd.local || '').trim(); if (fd.publica != null) C.publica = fd.publica !== '0'; refresh(); });
   }
   else if (act === 'delComp') {
     if (confirm('Excluir a competição “' + C.nome + '” com todos os esportes e resultados?')) {

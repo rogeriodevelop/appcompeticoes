@@ -119,8 +119,26 @@ create index if not exists eventos_atleta_idx      on public.eventos  (atleta_id
 create index if not exists eventos_equipe_idx      on public.eventos  (equipe_id);
 create index if not exists competicoes_owner_idx   on public.competicoes (owner);
 
+-- ---------- Evento público ou privado ----------
+-- publica = true: qualquer pessoa vê. publica = false: só o dono (e os gestores convidados, se o gestores.sql estiver instalado).
+alter table public.competicoes add column if not exists publica boolean not null default true;
+
+create or replace function public.comp_publica(cid text) returns boolean
+  language sql stable security definer set search_path = public as $$
+  select coalesce((select c.publica from public.competicoes c where c.id = cid), false)
+$$;
+create or replace function public.esporte_publico(eid text) returns boolean
+  language sql stable security definer set search_path = public as $$
+  select coalesce((select c.publica from public.esportes e join public.competicoes c on c.id = e.competicao_id where e.id = eid), false)
+$$;
+create or replace function public.jogo_publico(jid text) returns boolean
+  language sql stable security definer set search_path = public as $$
+  select coalesce((select c.publica from public.jogos j join public.esportes e on e.id = j.esporte_id join public.competicoes c on c.id = e.competicao_id where j.id = jid), false)
+$$;
+
 -- ---------- Segurança (RLS) ----------
--- Qualquer pessoa lê (área pública). Só quem está logado grava, e apenas nas linhas que criou.
+-- Leitura: eventos públicos para qualquer pessoa; privados só para o dono (a regra "dono grava" também libera a leitura).
+-- Só quem está logado grava, e apenas nas linhas que criou.
 do $$
 declare t text;
 begin
@@ -128,7 +146,11 @@ begin
     execute format('alter table public.%I enable row level security', t);
 
     execute format('drop policy if exists "leitura publica" on public.%I', t);
-    execute format('create policy "leitura publica" on public.%I for select to anon, authenticated using (true)', t);
+    execute format('create policy "leitura publica" on public.%I for select to anon, authenticated using (%s)', t,
+      case t when 'competicoes' then 'publica'
+             when 'esportes'    then 'public.comp_publica(competicao_id)'
+             when 'eventos'     then 'public.jogo_publico(jogo_id)'
+             else 'public.esporte_publico(esporte_id)' end);
 
     execute format('drop policy if exists "dono grava" on public.%I', t);
     execute format('create policy "dono grava" on public.%I for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()))', t);
