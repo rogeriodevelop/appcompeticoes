@@ -303,6 +303,10 @@ function completarJogos(c) {
 }
 
 /* ---------- Esportes com sets ---------- */
+var REL = null;
+function rel() {
+  return REL || (REL = window.criarRelatorios({ esc: esc, eq: eq, nomeEq: nomeEq, nomeLado: nomeLado, contagem: contagem, usaSets: usaSets, fmtData: fmtData }));
+}
 function usaSets(c) { return /v[ôo]lei|futev|t[êe]nis|padel|badminton|squash/i.test((c && c.modalidade) || ''); }
 
 /* ---------- Importação por planilha (CSV) ---------- */
@@ -543,7 +547,7 @@ function telaCompeticao(C) {
 
 function telaComp(c, aba) {
   var abas = [['classificacao', c.formato === 'mata' ? 'Chaveamento' : 'Classificação', ''], ['jogos', 'Jogos', c.jogos.filter(function (j) { return !j.bye; }).length],
-    ['equipes', 'Equipes', c.equipes.length], ['atletas', 'Atletas', c.atletas.length], ['estatisticas', 'Estatísticas', ''], ['regras', 'Regulamento', ''], ['config', 'Configuração', '']];
+    ['equipes', 'Equipes', c.equipes.length], ['atletas', 'Atletas', c.atletas.length], ['estatisticas', 'Estatísticas', ''], ['relatorios', 'Relatórios', ''], ['regras', 'Regulamento', ''], ['config', 'Configuração', '']];
   var tabs = abas.map(function (a) {
     return '<a href="#/c/' + CUR.comp.id + '/' + c.id + '/' + a[0] + '" class="' + (a[0] === aba ? 'on' : '') + '">' + a[1] + (a[2] !== '' ? '<small>' + a[2] + '</small>' : '') + '</a>';
   }).join('');
@@ -565,7 +569,7 @@ function telaComp(c, aba) {
   }
   var ch = campeao(c), k = contagem(c);
   var corpo = { classificacao: abaClass, jogos: abaJogos, equipes: abaEquipes, atletas: abaAtletas,
-    estatisticas: abaStats, regras: abaRegras, config: abaConfig }[aba] || abaClass;
+    estatisticas: abaStats, relatorios: function (x) { return rel().aba(x); }, regras: abaRegras, config: abaConfig }[aba] || abaClass;
   app.innerHTML = '<a class="crumb" href="#/c/' + CUR.comp.id + '">← ' + esc(CUR.comp.nome) + '</a>' +
     '<div class="phead"><div class="ptitle"><span class="ico">' + icone(c.modalidade) + '</span><div><h1>' + esc(c.modalidade) + '</h1>' +
     '<div class="chips" style="margin-top:4px"><span class="tag">' + esc((c.categoria ? c.categoria + ' · ' : '') + c.sexo) + '</span><span class="tag blue">' + FORMATOS[c.formato] + '</span>' +
@@ -949,6 +953,8 @@ document.addEventListener('click', function (e) {
     Nuvem.delGestor(C.id, el.dataset.email).then(function () { toast('Gestor removido.'); carregarGestores(C); }).catch(function (er) { toast(msgGest(er)); });
   }
   else if (act === 'imprimir') { window.print(); }
+  else if (act === 'relEquipe') { rel().equipe(el.dataset.id); route(); }
+  else if (act === 'relCsv') { rel().csv(c, el.dataset.k); }
   else if (act === 'recuperar') {
     var em = $('#mf').email.value.trim();
     if (!em) { toast('Informe o e-mail para receber o link.'); return; }
