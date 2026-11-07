@@ -23,6 +23,7 @@
    <span class="user" id="usuario"></span>
    <button class="btn btn-o sm" data-act="desfazer" id="btnDesfazer" style="display:none" title="Desfazer (Ctrl+Z)">↩ Desfazer</button>
    <button class="btn btn-o sm" data-act="refazer" id="btnRefazer" style="display:none" title="Refazer (Ctrl+Y)">↪ Refazer</button>
+   <button class="btn btn-o sm" data-instalar style="display:none" title="Instalar como aplicativo">📲 Instalar app</button>
    <button class="btn btn-o sm" data-act="publico" id="btnPublico">Modo público</button>
    <button class="btn btn-p sm" data-act="conta" id="btnConta">Entrar</button>
   </nav>
@@ -38,6 +39,7 @@
 <script src="regras.js"></script>
 <script src="nuvem.js"></script>
 <script src="app.js"></script>
+<script src="pwa.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});</script>
 </body>
 </html>

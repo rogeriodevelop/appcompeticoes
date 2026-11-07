@@ -25,7 +25,7 @@ header{transition:box-shadow .2s,background .2s}header.rolou{box-shadow:0 6px 24
 .logo i{font-style:normal;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:grid;place-items:center;font-size:1.2rem;box-shadow:0 4px 10px rgba(22,163,74,.35)}
 .logo small{display:block;font-size:.62rem;font-weight:500;color:var(--mut);letter-spacing:1.2px;text-transform:uppercase}
 nav ul{display:flex;gap:2px;list-style:none;font-size:.9rem;font-weight:600;color:var(--mut)}
-nav a{position:relative;display:block;padding:9px 12px;border-radius:10px;white-space:nowrap;transition:color .15s,background .15s}
+nav a{position:relative;display:block;padding:9px 10px;border-radius:10px;white-space:nowrap;transition:color .15s,background .15s}
 nav a:hover{background:var(--soft);color:var(--ink)}
 nav a::after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:var(--pri);transform:scaleX(0);transition:transform .2s}
 nav a.on{color:var(--brand)}nav a.on::after{transform:scaleX(1)}
@@ -101,7 +101,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
 .close{float:right;background:none;border:0;color:var(--mut);font-size:1.6rem;cursor:pointer}
 .msg{font-size:.9rem;border-radius:10px;padding:10px 12px}
 .msg.ok{background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0}.msg.err{background:#fef2f2;color:#7f1d1d;border:1px solid #fecaca}
-@media(max-width:1060px){
+@media(max-width:1200px){
  .nav>nav{flex:none;margin-left:auto}
  .menu-btn{display:block}
  nav ul{display:none;position:absolute;top:68px;left:0;right:0;background:#fff;flex-direction:column;gap:2px;padding:12px 20px 18px;border-bottom:1px solid var(--line);box-shadow:0 18px 30px rgba(15,27,51,.12)}
@@ -128,9 +128,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
    <ul id="menu">
     <li><a href="app.html">Competições</a></li><li><a href="#recursos">Recursos</a></li><li><a href="regulamentos.html">Regulamentos</a></li><li><a href="#como">Como funciona</a></li>
     <li><a href="#galeria">O sistema</a></li><li><a href="#gestao">Gestão</a></li><li><a href="#contato">Contato</a></li>
+    <li class="so-mob" data-instalar style="display:none"><a href="app.html">📲 Instalar app</a></li>
     <li class="so-mob"><a href="app.html">Acessar painel</a></li>
    </ul>
   </nav>
+  <button class="btn btn-o" data-instalar style="display:none;padding:9px 12px" title="Instalar como aplicativo" aria-label="Instalar app">📲</button>
   <a class="btn btn-p" href="app.html">Acessar painel</a>
  </div>
 </header>
@@ -397,6 +399,7 @@ frm.addEventListener("submit", function (e) {
     .then(function () { btn.disabled = false; btn.textContent = "Enviar contato"; });
 });
 </script>
+<script src="pwa.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});</script>
 </body>
 </html>
